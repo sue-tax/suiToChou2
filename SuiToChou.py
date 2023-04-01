@@ -19,9 +19,15 @@ Created on 2021/02/09
 '''
 
 '''
-TODO 翌期会計データの出納帳シートの日付が一年前、日付のフォーマット、
+TODO 日付のフォーマット、
 セルの入力規則
 https://oboe2uran.hatenablog.com/entry/2019/03/10/161932
+'''
+
+'''
+2023/04/01
+総勘定元帳、補助元帳、仕訳日記帳のExcelを
+印刷する際に、ヘッダーフッター設定
 '''
 
 
@@ -698,6 +704,8 @@ def save_soukanjou_motochou_file(file_name,
         for row in rows:
             sheet.append(row)
 
+        sheet.print_title_rows = '1:3'
+        sheet.oddFooter.center.text = "Page &[Page] of &N"
         sheet.page_setup.orientation \
                 = sheet.ORIENTATION_PORTRAIT
         sheet.page_setup.fitToWidth = 1
@@ -774,7 +782,8 @@ def save_hojo_motochou_file(file_name,
         sheet = wb.create_sheet(title=hojo_kamoku[0] + '_' + hojo_kamoku[1])
         sheet["C1"] = "補助元帳"
         sheet["E1"] = hojo_kamoku[0] + '　' + hojo_kamoku[1] # 勘定科目名　補助科目名
-        sheet["G1"] = kamoku[3] # 資産、収入など
+#         sheet["G1"] = kamoku[3] # 資産、収入など
+        sheet["G1"] = hojo_kamoku[3] # 資産、収入など
         sheet["A2"] = dantai_mei
         sheet["E2"] = str(kaishi_bi.year) +"年" \
                 + str(kaishi_bi.month) + "月" \
@@ -788,6 +797,8 @@ def save_hojo_motochou_file(file_name,
         for row in rows:
             sheet.append(row)
 
+        sheet.print_title_rows = '1:3'
+        sheet.oddFooter.center.text = "Page &[Page] of &N"
         sheet.page_setup.orientation \
                 = sheet.ORIENTATION_PORTRAIT
         sheet.page_setup.fitToWidth = 1
@@ -1047,6 +1058,8 @@ def save_shiwakechou_file(file_name,
     for row in rows:
         sheet.append(row)
 
+    sheet.print_title_rows = '1:3'
+    sheet.oddFooter.center.text = "Page &[Page] of &N"
     sheet.page_setup.orientation \
             = sheet.ORIENTATION_PORTRAIT
     sheet.page_setup.fitToWidth = 1
@@ -1174,12 +1187,12 @@ def create_yokuki_kihon_sheet(wb,
     sheet["A1"] = "団体名"
     sheet['B1'] = dantai_mei
     sheet['A2'] = '期首日'
-     # TODO 文字列ではダメ
+    # TODO 文字列ではダメ
     sheet['B2'] = str(kishu_bi.year+1) +"/" \
             + str(kishu_bi.month) + "/" \
             + str(kishu_bi.day)
     sheet['A3'] = '期末日'
-     # TODO 文字列ではダメ
+    # TODO 文字列ではダメ
     sheet['B3'] = str(kimatsu_bi.year+1) +"/" \
             + str(kimatsu_bi.month) + "/" \
             + str(kimatsu_bi.day)
