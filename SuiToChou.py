@@ -1668,14 +1668,40 @@ if __name__ == '__main__':
     d.dprint(type(kishu_bi))
     soukanjou_motochou_list = []
     shisanhyou_list = []
+#         kamoku_list: list of tuple of str, int, str, boolean
+#         勘定科目名、期首残高、貸借区分、貸借のタプルのリスト
+    taishaku_kubun = kamoku_list[0][2]
+    kishu_kubun_goukei = 0
+    karikata_kubun_goukei = 0
+    kashikata_kubun_goukei = 0
+    kimatsu_kubun_goukei = 0
     for kamoku in kamoku_list:
         soukanjou_motochou, zandaka, karikata_goukei, kashikata_goukei \
                 = sakusei_soukanjou_motochou(shiwake_chou, kamoku,
                 kishu_bi, kimatsu_bi)
         soukanjou_motochou_list.append(
                 (kamoku, soukanjou_motochou))
+        if taishaku_kubun != kamoku[2]:
+            shisanhyou_list.append((
+                    "++ "+taishaku_kubun+" 計 ++",
+                    kishu_kubun_goukei, karikata_kubun_goukei,
+                    kashikata_kubun_goukei, kimatsu_kubun_goukei))
+            kishu_kubun_goukei = 0
+            karikata_kubun_goukei = 0
+            kashikata_kubun_goukei = 0
+            kimatsu_kubun_goukei = 0
+            taishaku_kubun = kamoku[2]
         shisanhyou_list.append((kamoku[0], kamoku[1],
                 karikata_goukei, kashikata_goukei, zandaka))
+        kishu_kubun_goukei += kamoku[1]
+        karikata_kubun_goukei += karikata_goukei
+        kashikata_kubun_goukei += kashikata_goukei
+        kimatsu_kubun_goukei += zandaka
+    shisanhyou_list.append((
+            "++ "+taishaku_kubun+" 計 ++",
+            kishu_kubun_goukei, karikata_kubun_goukei,
+            kashikata_kubun_goukei, kimatsu_kubun_goukei))
+
     hojo_motochou_list = []
     hojo_ichiran_list = []
     for hojo_kamoku in hojo_kamoku_list:
