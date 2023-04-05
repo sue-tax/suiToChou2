@@ -24,12 +24,6 @@ TODO 日付のフォーマット、
 https://oboe2uran.hatenablog.com/entry/2019/03/10/161932
 '''
 
-'''
-2023/04/01
-総勘定元帳、補助元帳、仕訳日記帳のExcelを
-印刷する際に、ヘッダーフッター設定
-'''
-
 
 import pandas as pd
 import openpyxl as xl
@@ -128,6 +122,7 @@ TAISHAKU_KUBUN_FUSAI = '負債'
 TAISHAKU_KUBUN_JUNSHISAN = '純資産'
 TAISHAKU_KUBUN_SHUNYU = '収入'
 TAISHAKU_KUBUN_SHISHUTSU = '支出'
+TAISHAKU_KUBUN_SHUSHI = '収支'
 
 
 def read_suitou(excel_file_name, sheet_name,
@@ -1675,6 +1670,11 @@ if __name__ == '__main__':
     karikata_kubun_goukei = 0
     kashikata_kubun_goukei = 0
     kimatsu_kubun_goukei = 0
+    kishu_junshisan = 0
+    karikata_junshisan = 0
+    kashikata_junshisan = 0
+    kimatsu_junshisan = 0
+
     for kamoku in kamoku_list:
         soukanjou_motochou, zandaka, karikata_goukei, kashikata_goukei \
                 = sakusei_soukanjou_motochou(shiwake_chou, kamoku,
@@ -1683,9 +1683,28 @@ if __name__ == '__main__':
                 (kamoku, soukanjou_motochou))
         if taishaku_kubun != kamoku[2]:
             shisanhyou_list.append((
-                    "++ "+taishaku_kubun+" 計 ++",
+                    "++ "+taishaku_kubun+"計 ++",
                     kishu_kubun_goukei, karikata_kubun_goukei,
                     kashikata_kubun_goukei, kimatsu_kubun_goukei))
+            if taishaku_kubun == TAISHAKU_KUBUN_SHISAN:
+                kishu_junshisan = kishu_kubun_goukei
+                karikata_junshisan = karikata_kubun_goukei
+                kashikata_junshisan = kashikata_kubun_goukei
+                kimatsu_junshisan = kimatsu_kubun_goukei
+            if taishaku_kubun == TAISHAKU_KUBUN_SHUNYU:
+                kishu_shushi = kishu_kubun_goukei
+                karikata_shushi = karikata_kubun_goukei
+                kashikata_shushi = kashikata_kubun_goukei
+                kimatsu_shushi = kimatsu_kubun_goukei
+            if taishaku_kubun == TAISHAKU_KUBUN_FUSAI:
+                kishu_junshisan -= kishu_kubun_goukei
+                karikata_junshisan -= karikata_kubun_goukei
+                kashikata_junshisan -= kashikata_kubun_goukei
+                kimatsu_junshisan -= kimatsu_kubun_goukei
+                shisanhyou_list.append((
+                        "** "+TAISHAKU_KUBUN_JUNSHISAN+" **",
+                        kishu_junshisan, karikata_junshisan,
+                        kashikata_junshisan, kimatsu_junshisan))
             kishu_kubun_goukei = 0
             karikata_kubun_goukei = 0
             kashikata_kubun_goukei = 0
@@ -1698,19 +1717,59 @@ if __name__ == '__main__':
         kashikata_kubun_goukei += kashikata_goukei
         kimatsu_kubun_goukei += zandaka
     shisanhyou_list.append((
-            "++ "+taishaku_kubun+" 計 ++",
+            "++ "+taishaku_kubun+"計 ++",
             kishu_kubun_goukei, karikata_kubun_goukei,
             kashikata_kubun_goukei, kimatsu_kubun_goukei))
+    kishu_shushi -= kishu_kubun_goukei
+    karikata_shushi -= karikata_kubun_goukei
+    kashikata_shushi -= kashikata_kubun_goukei
+    kimatsu_shushi -= kimatsu_kubun_goukei
+    shisanhyou_list.append((
+            "** "+TAISHAKU_KUBUN_SHUSHI+" **",
+            kishu_shushi, karikata_shushi,
+            kashikata_shushi, kimatsu_shushi))
 
     hojo_motochou_list = []
     hojo_ichiran_list = []
+    kamoku_mei = hojo_kamoku_list[0][0]
+    kishu_kamoku_goukei = 0
+    karikata_kamoku_goukei = 0
+    kashikata_kamoku_goukei = 0
+    kimatsu_kamoku_goukei = 0
     for hojo_kamoku in hojo_kamoku_list:
         hojo_motochou, zandaka, karikata_goukei, kashikata_goukei \
                 = sakusei_hojo_motochou(shiwake_chou, hojo_kamoku,
                 kishu_bi, kimatsu_bi)
         hojo_motochou_list.append((hojo_kamoku, hojo_motochou))
+        if kamoku_mei != hojo_kamoku[0]:
+            hojo_ichiran_list.append(
+                    (kamoku_mei, "計", \
+                    kishu_kamoku_goukei,
+                    karikata_kamoku_goukei,
+                    kashikata_kamoku_goukei,
+                    kimatsu_kamoku_goukei))
+            kamoku_mei = hojo_kamoku[0]
+            kishu_kamoku_goukei = 0
+            karikata_kamoku_goukei = 0
+            kashikata_kamoku_goukei = 0
+            kimatsu_kamoku_goukei = 0
         hojo_ichiran_list.append((hojo_kamoku[0], hojo_kamoku[1], \
-                hojo_kamoku[2], karikata_goukei, kashikata_goukei, zandaka))
+                hojo_kamoku[2], karikata_goukei,
+                kashikata_goukei, zandaka))
+        kishu_kamoku_goukei += hojo_kamoku[2]
+        karikata_kamoku_goukei += karikata_goukei
+        kashikata_kamoku_goukei += kashikata_goukei
+        kimatsu_kamoku_goukei += zandaka
+    hojo_ichiran_list.append(
+            (kamoku_mei, "計", \
+            kishu_kamoku_goukei,
+            karikata_kamoku_goukei,
+            kashikata_kamoku_goukei,
+            kimatsu_kamoku_goukei))
+    kishu_kamoku_goukei = 0
+    karikata_kamoku_goukei = 0
+    kashikata_kamoku_goukei = 0
+    kimatsu_kamoku_goukei = 0
 
     # Excelに出力
     d.dprint_name("kishu_bi", kishu_bi)
