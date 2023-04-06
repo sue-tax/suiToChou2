@@ -19,6 +19,11 @@ Created on 2021/02/09
 '''
 
 '''
+TODO 残高試算表に合計額を出力するための処理が
+翌期会計データの出力に悪影響
+'''
+
+'''
 TODO 日付のフォーマット、
 セルの入力規則
 https://oboe2uran.hatenablog.com/entry/2019/03/10/161932
@@ -1203,6 +1208,8 @@ def create_yokuki_kihon_sheet(wb,
         hojo_set.add(hojo[0])   # 補助科目がある勘定科目を登録
     row_num = 0
     for kamoku in shisanhyou_list:
+#         if (kamoku[0][0] == '+') or (kamoku[0][0] == '*'):
+#             continue
         if kamoku[0] in hojo_set:
             # 補助科目の処理
             for hojo in hojo_ichiran_list:
@@ -1499,6 +1506,11 @@ def read_kihon(excel_file_name, sheet_name):
 #     for index in range(KAMOKU_TITLE_ROW + 1, sheet.max_row):
     for index in range(KAMOKU_TITLE_ROW + 1, sheet.max_row + 1):
         kamoku = sheet.cell(row=index, column=KAMOKU_COLUMN).value
+        d.dprint(kamoku)
+        d.dprint(kamoku[0])
+        if (kamoku[0] == '+') or (kamoku[0] == '*'):
+            continue
+
         hojo_kamoku = sheet.cell(row=index, \
                 column=HOJO_KAMOKU_COLUMN).value
         taishaku_kubun = sheet.cell(row=index, \
