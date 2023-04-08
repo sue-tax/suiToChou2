@@ -19,6 +19,11 @@ Created on 2021/02/09
 '''
 
 '''
+TODO 残高試算表に合計額を出力するための処理が
+翌期会計データの出力に悪影響
+'''
+
+'''
 TODO 日付のフォーマット、
 セルの入力規則
 https://oboe2uran.hatenablog.com/entry/2019/03/10/161932
@@ -32,8 +37,7 @@ from openpyxl.styles import Border, Side, Alignment
 from openpyxl.worksheet.datavalidation import DataValidation
 import openpyxl.reader
 import os
-from datetime import datetime
-from dateutil.relativedelta import relativedelta
+# from datetime import datetime
 
 import c
 import d
@@ -125,7 +129,6 @@ TAISHAKU_KUBUN_SHUNYU = '収入'
 TAISHAKU_KUBUN_SHISHUTSU = '支出'
 TAISHAKU_KUBUN_SHUSHI = '収支'
 
-TANI_EN = '(単位:円)'
 
 def read_suitou(excel_file_name, sheet_name,
             kamoku_mei, hojo_kamoku_mei):
@@ -185,8 +188,6 @@ def read_suitou(excel_file_name, sheet_name,
             inplace=True)
     df_suitou[[NYUKIN, SHUKKIN]] \
             = df_suitou[[NYUKIN, SHUKKIN]].astype('int')
-    df_suitou[[TEKIYOU, TEKIYOU2]] \
-            = df_suitou[[TEKIYOU, TEKIYOU2]].astype('str')
     pd.to_datetime(df_suitou[HIZUKE], format="%Y-%m-%d")   # 20210823
 
 #     d.dprint("＊＊＊テスト＊＊＊")
@@ -205,8 +206,6 @@ def read_suitou(excel_file_name, sheet_name,
     del df_nyukin
     df_nyukin = df_nyukin_new
 #     d.dprint(df_nyukin[KASHIKATA_HOJO_KAMOKU])
-    d.dprint(df_nyukin[HIZUKE])
-    d.dprint(df_nyukin[TEKIYOU])
     df_nyukin[TEKIYOU] = df_nyukin[TEKIYOU] + ' ' + df_nyukin[TEKIYOU2]
     df_nyukin = df_nyukin.reindex([HIZUKE, DENPYOU_BANGOU,
             KARIKATA_KAMOKU, KARIKATA_HOJO_KAMOKU, KARIKATA_KINGAKU,
@@ -693,21 +692,12 @@ def save_soukanjou_motochou_file(file_name,
         sheet["F1"] = kamoku[0] # 勘定科目名
         sheet["H1"] = kamoku[2] # 資産、収入など
         sheet["A2"] = dantai_mei
-#         tstr = '1900-01-01 00:00:00'
-#         tdatetime = datetime.strptime(tstr, '%Y-%m-%d %H:%M:%S')
-#         d.dprint(tdatetime.toordinal())
-
-        str_kishu = "TEXT(" \
-                + str(kaishi_bi.toordinal()-693594) \
-                + ',"' + FORMAT_KIKAN + '")'
-        str_kimatsu = "TEXT(" \
-                + str(kimatsu_bi.toordinal()-693594) \
-                + ',"' + FORMAT_KIKAN + '")'
-        sheet["F2"] = "=CONCATENATE(" + str_kishu \
-                + ',"～" ,' + str_kimatsu + ")"
-        sheet["I2"] = TANI_EN
-        sheet["I2"].alignment \
-                = Alignment(horizontal='right',vertical='center')
+        sheet["F2"] = str(kaishi_bi.year) +"年" \
+                + str(kaishi_bi.month) + "月" \
+                + str(kaishi_bi.day) + "日　～" \
+                + str(kimatsu_bi.year) +"年" \
+                + str(kimatsu_bi.month) + "月" \
+                + str(kimatsu_bi.day) + "日"
 
         rows = dataframe_to_rows(
                 motochou, index=False, header=True)
@@ -747,8 +737,7 @@ def save_soukanjou_motochou_file(file_name,
                 continue
             for cell_index, cell in enumerate(row):
                 if cell_index == 0:
-#                     cell.number_format = u'yyyy年m月d日'
-                    cell.number_format = FORMAT_HIZUKE
+                    cell.number_format = u'yyyy年m月d日'
                 elif cell_index == 6 \
                         or cell_index == 7 \
                         or cell_index == 8:
@@ -796,23 +785,12 @@ def save_hojo_motochou_file(file_name,
 #         sheet["G1"] = kamoku[3] # 資産、収入など
         sheet["G1"] = hojo_kamoku[3] # 資産、収入など
         sheet["A2"] = dantai_mei
-        str_kishu = "TEXT(" \
-                + str(kaishi_bi.toordinal()-693594) \
-                + ',"' + FORMAT_KIKAN + '")'
-        str_kimatsu = "TEXT(" \
-                + str(kimatsu_bi.toordinal()-693594) \
-                + ',"' + FORMAT_KIKAN + '")'
-        sheet["E2"] = "=CONCATENATE(" + str_kishu \
-                + ',"～" ,' + str_kimatsu + ")"
-#         sheet["E2"] = str(kaishi_bi.year) +"年" \
-#                 + str(kaishi_bi.month) + "月" \
-#                 + str(kaishi_bi.day) + "日　～" \
-#                 + str(kimatsu_bi.year) +"年" \
-#                 + str(kimatsu_bi.month) + "月" \
-#                 + str(kimatsu_bi.day) + "日"
-        sheet["H2"] = TANI_EN
-        sheet["H2"].alignment \
-                = Alignment(horizontal='right',vertical='center')
+        sheet["E2"] = str(kaishi_bi.year) +"年" \
+                + str(kaishi_bi.month) + "月" \
+                + str(kaishi_bi.day) + "日　～" \
+                + str(kimatsu_bi.year) +"年" \
+                + str(kimatsu_bi.month) + "月" \
+                + str(kimatsu_bi.day) + "日"
 
         rows = dataframe_to_rows(
                 motochou, index=False, header=True)
@@ -851,8 +829,7 @@ def save_hojo_motochou_file(file_name,
                 continue
             for cell_index, cell in enumerate(row):
                 if cell_index == 0:
-#                     cell.number_format = u'yyyy年m月d日'
-                    cell.number_format = FORMAT_HIZUKE
+                    cell.number_format = u'yyyy年m月d日'
                 elif cell_index == 5 \
                         or cell_index == 6 \
                         or cell_index == 7:
@@ -901,26 +878,14 @@ def save_shisanhyou_file(file_name,
     sheet["C1"].alignment = Alignment(horizontal="centerContinuous")
     sheet["D1"].alignment = Alignment(horizontal="centerContinuous")
     sheet["E1"].alignment = Alignment(horizontal="centerContinuous")
-    sheet["E2"] = TANI_EN
-    sheet["E2"].alignment \
-            = Alignment(horizontal='right',vertical='center')
-
 
     sheet["A2"] = dantai_mei
-    str_kishu = "TEXT(" \
-            + str(kaishi_bi.toordinal()-693594) \
-            + ',"' + FORMAT_KIKAN + '")'
-    str_kimatsu = "TEXT(" \
-            + str(kimatsu_bi.toordinal()-693594) \
-            + ',"' + FORMAT_KIKAN + '")'
-    sheet["B2"] = "=CONCATENATE(" + str_kishu \
-            + ',"～" ,' + str_kimatsu + ")"
-#     sheet["B2"] = str(kaishi_bi.year) +"年" \
-#             + str(kaishi_bi.month) + "月" \
-#             + str(kaishi_bi.day) + "日　～　" \
-#             + str(kimatsu_bi.year) +"年" \
-#             + str(kimatsu_bi.month) + "月" \
-#             + str(kimatsu_bi.day) + "日"
+    sheet["B2"] = str(kaishi_bi.year) +"年" \
+            + str(kaishi_bi.month) + "月" \
+            + str(kaishi_bi.day) + "日　～　" \
+            + str(kimatsu_bi.year) +"年" \
+            + str(kimatsu_bi.month) + "月" \
+            + str(kimatsu_bi.day) + "日"
     sheet["B2"].alignment = Alignment(horizontal="left")
     sheet["A3"] = "勘定科目名"
     sheet["A3"].alignment = Alignment(horizontal="center")
@@ -969,25 +934,14 @@ def save_shisanhyou_file(file_name,
     sheet["D1"].alignment = Alignment(horizontal="centerContinuous")
     sheet["E1"].alignment = Alignment(horizontal="centerContinuous")
     sheet["F1"].alignment = Alignment(horizontal="centerContinuous")
-    sheet["F2"] = TANI_EN
-    sheet["F2"].alignment \
-            = Alignment(horizontal='right',vertical='center')
 
     sheet["A2"] = dantai_mei
-    str_kishu = "TEXT(" \
-            + str(kaishi_bi.toordinal()-693594) \
-            + ',"' + FORMAT_KIKAN + '")'
-    str_kimatsu = "TEXT(" \
-            + str(kimatsu_bi.toordinal()-693594) \
-            + ',"' + FORMAT_KIKAN + '")'
-    sheet["B2"] = "=CONCATENATE(" + str_kishu \
-            + ',"～" ,' + str_kimatsu + ")"
-#     sheet["B2"] = str(kaishi_bi.year) +"年" \
-#             + str(kaishi_bi.month) + "月" \
-#             + str(kaishi_bi.day) + "日　～　" \
-#             + str(kimatsu_bi.year) +"年" \
-#             + str(kimatsu_bi.month) + "月" \
-#             + str(kimatsu_bi.day) + "日"
+    sheet["B2"] = str(kaishi_bi.year) +"年" \
+            + str(kaishi_bi.month) + "月" \
+            + str(kaishi_bi.day) + "日　～　" \
+            + str(kimatsu_bi.year) +"年" \
+            + str(kimatsu_bi.month) + "月" \
+            + str(kimatsu_bi.day) + "日"
     sheet["B2"].alignment = Alignment(horizontal="left")
     sheet["A3"] = "勘定科目名"
     sheet["A3"].alignment = Alignment(horizontal="center")
@@ -1073,20 +1027,12 @@ def save_shiwakechou_file(file_name,
     sheet["I1"].alignment = Alignment(horizontal="centerContinuous")
 
     sheet["A2"] = dantai_mei
-    str_kishu = "TEXT(" \
-            + str(kaishi_bi.toordinal()-693594) \
-            + ',"' + FORMAT_KIKAN + '")'
-    str_kimatsu = "TEXT(" \
-            + str(kimatsu_bi.toordinal()-693594) \
-            + ',"' + FORMAT_KIKAN + '")'
-    sheet["B2"] = "=CONCATENATE(" + str_kishu \
-            + ',"～" ,' + str_kimatsu + ")"
-#     sheet["B2"] = str(kaishi_bi.year) +"年" \
-#             + str(kaishi_bi.month) + "月" \
-#             + str(kaishi_bi.day) + "日　～　" \
-#             + str(kimatsu_bi.year) +"年" \
-#             + str(kimatsu_bi.month) + "月" \
-#             + str(kimatsu_bi.day) + "日"
+    sheet["B2"] = str(kaishi_bi.year) +"年" \
+            + str(kaishi_bi.month) + "月" \
+            + str(kaishi_bi.day) + "日　～　" \
+            + str(kimatsu_bi.year) +"年" \
+            + str(kimatsu_bi.month) + "月" \
+            + str(kimatsu_bi.day) + "日"
     sheet["B2"].alignment = Alignment(horizontal="left")
     sheet["A3"] = "日付"
     sheet["A3"].alignment = Alignment(horizontal="center")
@@ -1106,9 +1052,6 @@ def save_shiwakechou_file(file_name,
     sheet["H3"].alignment = Alignment(horizontal="center")
     sheet["I3"] = "摘要"
     sheet["I3"].alignment = Alignment(horizontal="center")
-    sheet["I2"] = TANI_EN
-    sheet["I2"].alignment \
-            = Alignment(horizontal='right',vertical='center')
 
     rows = dataframe_to_rows(
             shiwakechou, index=False, header=False)
@@ -1148,8 +1091,7 @@ def save_shiwakechou_file(file_name,
             continue
         for cell_index, cell in enumerate(row):
             if cell_index == 0:
-#                 cell.number_format = u'yyyy年m月d日'
-                cell.number_format = FORMAT_HIZUKE
+                cell.number_format = u'yyyy年m月d日'
             elif cell_index == 4 \
                     or cell_index == 7:
                 cell.number_format = "#,##0"
@@ -1201,29 +1143,11 @@ def save_yokuki_kihon(file_name,
             suitou_list, shisanhyou_list, hojo_ichiran_list,
             kamoku_list, hojo_kamoku_list)
 
-    kamoku_unique_list = []
-    for kamoku in kamoku_list:
-        kamoku_unique_list.append(kamoku[0])
-    str_kamoku_list = '"' + ','.join(kamoku_unique_list) + '"'
-#     formula_kamoku = "基本!$A${}:$A${}".format(row_start, row_end)
-#     d.dprint_name("formula_kamoku", formula_kamoku)
-#     dv_kamoku = DataValidation(type="list", formula1=formula_kamoku)
-    dv_kamoku = DataValidation(type="list",
-            formula1=str_kamoku_list, allow_blank=False)
-    dv_kamoku_tanitsu = DataValidation(type="list",
-            formula1=str_kamoku_list, allow_blank=False)
-
-#     formula_hojo = "基本!$B${}:$B${}".format(row_start, row_end)
-#     dv_hojo = DataValidation(type="list", formula1=formula_hojo)
-    hojo_unique_list = []
-    for hojo in hojo_kamoku_list:
-        if hojo[1] not in hojo_unique_list:
-            hojo_unique_list.append(hojo[1])
-    str_hojo_list = '"' + ','.join(hojo_unique_list) + '"'
-    dv_hojo = DataValidation(type="list",
-            formula1=str_hojo_list, allow_blank=False)
-    dv_hojo_tanitsu = DataValidation(type="list",
-            formula1=str_hojo_list, allow_blank=False)
+    formula_kamoku = "基本!$A${}:$A${}".format(row_start, row_end)
+    d.dprint_name("formula_kamoku", formula_kamoku)
+    dv_kamoku = DataValidation(type="list", formula1=formula_kamoku)
+    formula_hojo = "基本!$B${}:$B${}".format(row_start, row_end)
+    dv_hojo = DataValidation(type="list", formula1=formula_hojo)
 
     # 出納帳用のシート作成
     for suitou in suitou_list:
@@ -1239,15 +1163,14 @@ def save_yokuki_kihon(file_name,
                 if (hojo[0] == suitou[0]) \
                         and (hojo[1] == suitou[1]):
                     break
-            create_yokuki_suitou_sheet(wb,
-                    suitou[0] + '_' + suitou[1],
+            create_yokuki_suitou_sheet(wb, suitou[0] + '_' + suitou[1],
                     kishu_bi,
                     suitou[0] + suitou[1], hojo[5],
                     dv_kamoku, dv_hojo)
 
     # 振替伝票用のシート作成
     create_yokuki_tanitsushiwake_sheet(wb, SHIWAKE_SHEET_NAME,
-            dv_kamoku_tanitsu, dv_hojo_tanitsu)
+            dv_kamoku, dv_hojo)
 
     try:
         wb.save(file_name)
@@ -1264,25 +1187,15 @@ def create_yokuki_kihon_sheet(wb,
     sheet["A1"] = "団体名"
     sheet['B1'] = dantai_mei
     sheet['A2'] = '期首日'
-    yokuki_kishubi = kishu_bi + relativedelta(years=1)
-#     sheet['B2'] = "=TEXT(" \
-#             + str(yokuki_kishubi.toordinal()-693594) \
-#             + ',"' + FORMAT_KIKAN + '")'
-#     sheet["B2"].number_format = FORMAT_KIKAN
-    sheet['B2'] = str(kishu_bi.year+1) +"-" \
-            + str(kishu_bi.month) + "-" \
+    # TODO 文字列ではダメ
+    sheet['B2'] = str(kishu_bi.year+1) +"/" \
+            + str(kishu_bi.month) + "/" \
             + str(kishu_bi.day)
-#     sheet["B2"].number_format = FORMAT_HIZUKE
     sheet['A3'] = '期末日'
-#     yokuki_kimatsubi = kimatsu_bi + relativedelta(years=1)
-#     sheet['B3'] = "=TEXT(" \
-#                 + str(yokuki_kimatsubi.toordinal()-693594) \
-#                 + ',"' + FORMAT_KIKAN + '")'
-#     sheet["B3"].number_format = FORMAT_KIKAN
-    sheet['B3'] = str(kimatsu_bi.year+1) +"-" \
-            + str(kimatsu_bi.month) + "-" \
+    # TODO 文字列ではダメ
+    sheet['B3'] = str(kimatsu_bi.year+1) +"/" \
+            + str(kimatsu_bi.month) + "/" \
             + str(kimatsu_bi.day)
-#     sheet["B3"].number_format = FORMAT_HIZUKE
     sheet["A4"] = "科目"
     sheet["B4"] = "補助科目"
     sheet["C4"] = "期首残高"
@@ -1403,16 +1316,12 @@ def create_yokuki_suitou_sheet(wb, sheet_name, kishu_bi,
     sheet["H2"] = ZANDAKA
 
     # 期首残高欄
-    kishu_bi = kishu_bi + relativedelta(years=1)
-    str_kishu = "=TEXT(" \
-            + str(kishu_bi.toordinal()-693594) \
-            + ',"' + FORMAT_HIZUKE + '")'
-    sheet["A3"] = str_kishu
-#     sheet["A3"] = str(kishu_bi.year+1) +"-" \
-#             + str(kishu_bi.month) + "-" \
-#             + str(kishu_bi.day)
-#     sheet["A3"].number_format = u'yyyy-mm-dd'
-    sheet["A3"].number_format = FORMAT_HIZUKE
+#     sheet["A3"] = kishu_bi
+#     sheet["A3"].number_format = u'yyyy年m月d日'
+    sheet["A3"] = str(kishu_bi.year+1) +"-" \
+            + str(kishu_bi.month) + "-" \
+            + str(kishu_bi.day)
+    sheet["A3"].number_format = u'yyyy-mm-dd'
     sheet["H3"] = kishu_zandaka
     sheet["H3"].number_format = "#,##0"
 
@@ -1447,10 +1356,7 @@ def create_yokuki_suitou_sheet(wb, sheet_name, kishu_bi,
             str_shiki = "=H{}+F{}-G{}".format(row_index-1, row_index, row_index)
 #             sheet.append(('', '', '', '', '', '', '', '=R[-1]C+RC[-2]-RC[-1]'))
             sheet.append(('', '', '', '', '', '', '', str_shiki))
-#             sheet.cell(row=row_index, column=1).number_format = u'yyyy-mm-dd'
-            sheet.cell(row=row_index, column=1).number_format = FORMAT_HIZUKE
-            sheet.cell(row=row_index, column=4).number_format = "@"
-            sheet.cell(row=row_index, column=4).number_format = "@"
+            sheet.cell(row=row_index, column=1).number_format = u'yyyy-mm-dd'
             sheet.cell(row=row_index, column=6).number_format = "#,##0"
             sheet.cell(row=row_index, column=7).number_format = "#,##0"
             sheet.cell(row=row_index, column=8).number_format = "#,##0"
@@ -1509,8 +1415,7 @@ def create_yokuki_tanitsushiwake_sheet(wb, sheet_name,
                         .alignment = Alignment(horizontal="center")
         if row_index > 2:
             sheet.append(('', '', '', '', '', '', '', '', ''))
-#             sheet.cell(row=row_index, column=1).number_format = u'yyyy-mm-dd'
-            sheet.cell(row=row_index, column=1).number_format = FORMAT_HIZUKE
+            sheet.cell(row=row_index, column=1).number_format = u'yyyy-mm-dd'
             sheet.cell(row=row_index, column=4).number_format = "#,##0"
             sheet.cell(row=row_index, column=7).number_format = "#,##0"
             dv_kamoku.add(sheet.cell(row_index, 2))
@@ -1588,11 +1493,12 @@ def read_kihon(excel_file_name, sheet_name):
 
     dantai_mei = sheet.cell(row=DANTAI_MEI_ROW, column=2).value
     kishu_bi = sheet.cell(row=KISHU_BI_ROW, column=2).value
-    if isinstance(kishu_bi, str):
-        kishu_bi = datetime.strptime(kishu_bi, '%Y-%m-%d')
+    d.dprint(sheet.cell(row=KISHU_BI_ROW, column=2).number_format)
+#     if type(kishu_bi) == 'str':
+#         kishu_bi = datetime.strptime(kishu_bi, 'Y-m-d')
     kimatsu_bi = sheet.cell(row=KIMATSU_BI_ROW, column=2).value
-    if isinstance(kimatsu_bi, str):
-        kimatsu_bi = datetime.strptime(kimatsu_bi, '%Y-%m-%d')
+#     if type(kimatsu_bi) == 'str':
+#         kishu_bi = datetime.strptime(kimatsu_bi, 'Y-m-d')
 
     kamoku_list = []
     hojo_kamoku_list = []
@@ -1696,7 +1602,6 @@ def read_settei(excel_file_name, sheet_name):
     global KAMOKU_W, HOJO_W, KINGAKU_W
     global TEKIYOU1_W, TEKIYOU2_W, TEKIYOU_W
     global SUITOU_W, KUBUN_W
-    global FORMAT_HIZUKE, FORMAT_KIKAN
     y_row = 8
     HIZUKE_W = read_cell(excel_file_name, sheet_name,
             sheet, y_row + 1, 2)
@@ -1718,9 +1623,6 @@ def read_settei(excel_file_name, sheet_name):
             sheet, y_row + 9, 2)
     BANGOU_W = read_cell(excel_file_name, sheet_name,
             sheet, y_row + 10, 2)
-
-    FORMAT_HIZUKE = sheet.cell(row=19, column=2).value
-    FORMAT_KIKAN = sheet.cell(row=20, column=2).value
 
     return
 
