@@ -6,7 +6,6 @@ Created on 2021/02/09
 　　　　　　　　　　　中納言朝忠
 @author: sue-t
 '''
-# from scipy.integrate.vode import dvode
 
 '''
 出納帳のExcelデータを、
@@ -17,13 +16,6 @@ Created on 2021/02/09
 伝票番号を自動生成する
 部門、税区分、税額は対応しない
 '''
-
-'''
-TODO 日付のフォーマット、
-セルの入力規則
-https://oboe2uran.hatenablog.com/entry/2019/03/10/161932
-'''
-
 
 import pandas as pd
 import openpyxl as xl
@@ -127,6 +119,7 @@ TAISHAKU_KUBUN_SHUSHI = '収支'
 
 TANI_EN = '(単位:円)'
 
+
 def read_suitou(excel_file_name, sheet_name,
             kamoku_mei, hojo_kamoku_mei):
     '''
@@ -189,24 +182,17 @@ def read_suitou(excel_file_name, sheet_name,
             = df_suitou[[TEKIYOU, TEKIYOU2]].astype('str')
     pd.to_datetime(df_suitou[HIZUKE], format="%Y-%m-%d")   # 20210823
 
-#     d.dprint("＊＊＊テスト＊＊＊")
-#     d.dprint(df_suitou)
     d.dprint(df_suitou[AITE_HOJO_KAMOKU]) # "相手補助科目"])   # AITE_HOJO_KAMOKU])
     df_nyukin = df_suitou[df_suitou[NYUKIN] != 0]
-#     d.dprint(df_nyukin)
     df_nyukin.insert(2, KARIKATA_KAMOKU, kamoku_mei)
     df_nyukin.insert(3, KARIKATA_HOJO_KAMOKU, hojo_kamoku_mei)
     df_nyukin.insert(4, KARIKATA_KINGAKU, df_nyukin[NYUKIN])
-#     d.dprint(df_nyukin[AITE_HOJO_KAMOKU])
     df_nyukin_new = df_nyukin.rename(columns={
             AITE_KAMOKU: KASHIKATA_KAMOKU,
             AITE_HOJO_KAMOKU: KASHIKATA_HOJO_KAMOKU,
             NYUKIN: KASHIKATA_KINGAKU})
     del df_nyukin
     df_nyukin = df_nyukin_new
-#     d.dprint(df_nyukin[KASHIKATA_HOJO_KAMOKU])
-    d.dprint(df_nyukin[HIZUKE])
-    d.dprint(df_nyukin[TEKIYOU])
     df_nyukin[TEKIYOU] = df_nyukin[TEKIYOU] + ' ' + df_nyukin[TEKIYOU2]
     df_nyukin = df_nyukin.reindex([HIZUKE, DENPYOU_BANGOU,
             KARIKATA_KAMOKU, KARIKATA_HOJO_KAMOKU, KARIKATA_KINGAKU,
@@ -214,8 +200,6 @@ def read_suitou(excel_file_name, sheet_name,
             TEKIYOU],
             axis='columns')
 
-#     d.dprint(df_nyukin)
-#     d.dprint("===テスト===")
     df_shukkin = df_suitou[df_suitou[SHUKKIN] != 0]
     df_shukkin.insert(6, KASHIKATA_KAMOKU, kamoku_mei)
     df_shukkin.insert(7, KASHIKATA_HOJO_KAMOKU, hojo_kamoku_mei)
@@ -1208,10 +1192,14 @@ def save_yokuki_kihon(file_name,
 #     formula_kamoku = "基本!$A${}:$A${}".format(row_start, row_end)
 #     d.dprint_name("formula_kamoku", formula_kamoku)
 #     dv_kamoku = DataValidation(type="list", formula1=formula_kamoku)
+#     dv_kamoku = DataValidation(type="list",
+#             formula1=str_kamoku_list, allow_blank=False)
+#     dv_kamoku_tanitsu = DataValidation(type="list",
+#             formula1=str_kamoku_list, allow_blank=False)
     dv_kamoku = DataValidation(type="list",
-            formula1=str_kamoku_list, allow_blank=False)
+            formula1=str_kamoku_list, allow_blank=True)
     dv_kamoku_tanitsu = DataValidation(type="list",
-            formula1=str_kamoku_list, allow_blank=False)
+            formula1=str_kamoku_list, allow_blank=True)
 
 #     formula_hojo = "基本!$B${}:$B${}".format(row_start, row_end)
 #     dv_hojo = DataValidation(type="list", formula1=formula_hojo)
@@ -1220,10 +1208,14 @@ def save_yokuki_kihon(file_name,
         if hojo[1] not in hojo_unique_list:
             hojo_unique_list.append(hojo[1])
     str_hojo_list = '"' + ','.join(hojo_unique_list) + '"'
+#     dv_hojo = DataValidation(type="list",
+#             formula1=str_hojo_list, allow_blank=False)
+#     dv_hojo_tanitsu = DataValidation(type="list",
+#             formula1=str_hojo_list, allow_blank=False)
     dv_hojo = DataValidation(type="list",
-            formula1=str_hojo_list, allow_blank=False)
+            formula1=str_hojo_list, allow_blank=True)
     dv_hojo_tanitsu = DataValidation(type="list",
-            formula1=str_hojo_list, allow_blank=False)
+            formula1=str_hojo_list, allow_blank=True)
 
     # 出納帳用のシート作成
     for suitou in suitou_list:
@@ -1264,7 +1256,7 @@ def create_yokuki_kihon_sheet(wb,
     sheet["A1"] = "団体名"
     sheet['B1'] = dantai_mei
     sheet['A2'] = '期首日'
-    yokuki_kishubi = kishu_bi + relativedelta(years=1)
+#     yokuki_kishubi = kishu_bi + relativedelta(years=1)
 #     sheet['B2'] = "=TEXT(" \
 #             + str(yokuki_kishubi.toordinal()-693594) \
 #             + ',"' + FORMAT_KIKAN + '")'
