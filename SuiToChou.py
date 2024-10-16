@@ -317,7 +317,6 @@ def ketsugou_shiwake(list_df_shiwake, list_suitou_kamoku):
     df_ketsugou = pd.concat(list_df_shiwake, ignore_index=True)
     df_ketsugou.sort_values([HIZUKE, DENPYOU_BANGOU],
             inplace=True)
-#     df_ketsugou.reindex()
 
     # 重複を削除
     index_pair_list = []
@@ -343,7 +342,15 @@ def ketsugou_shiwake(list_df_shiwake, list_suitou_kamoku):
                             (index_pair[index],
                             index_pair[index+1]))
             else:
-                e.eprint("出納帳データ異常", "重複データが奇数です。")
+                str_msg = "重複データが奇数です。\n{} {:,d} {:,d}\n {} {} {} {}\n{}". \
+                        format(row[HIZUKE].strftime('%Y-%m-%d'),
+                        row[KARIKATA_KINGAKU], row[KASHIKATA_KINGAKU],       
+                        row[KARIKATA_KAMOKU], row[KARIKATA_HOJO_KAMOKU],
+                        row[KASHIKATA_KAMOKU], row[KASHIKATA_HOJO_KAMOKU],
+                        row[TEKIYOU]
+                        )
+                        # format(datetime.strptime(str(row[HIZUKE]), '%Y-%m-%d'),
+                e.eprint("出納帳データ異常", str_msg)
 
     index_pair_set = set(index_pair_list)
     index_drop_list = []
@@ -459,7 +466,7 @@ def sakusei_soukanjou_motochou(shiwake_chou, kamoku, kishu_bi, kimatsu_bi):
     del df_kimatsu
     del df_motochou
     df_motochou = df_new.reset_index(drop=True)
-    d.dprint(df_motochou)
+#     d.dprint(df_motochou)
 
     zandaka = kamoku[1]
     taishaku = kamoku[3]
@@ -1291,26 +1298,28 @@ def create_yokuki_kihon_sheet(wb,
 #             continue
         if kamoku[0] in hojo_set:
             # 補助科目の処理
+            # for hojo in hojo_ichiran_list:
             for hojo in hojo_ichiran_list:
                 if kamoku[0] == hojo[0]:
-                    suitou_umu = ''
-                    for suitou in suitou_list:
-                        if len(suitou) == 2:
-                            if (suitou[0] == kamoku[0]) \
-                                    and (suitou[1] == hojo[1]):
-                                suitou_umu = '有'
-                    for hojo2 in hojo_kamoku_list:
-                        if (hojo[0] == hojo2[0]) \
-                                and (hojo[1] == hojo2[1]):
-                            kubun = hojo2[3]
-                    if (kubun == TAISHAKU_KUBUN_SHUNYU) \
-                            or (kubun == TAISHAKU_KUBUN_SHISHUTSU):
-                        zandaka = 0
-                    else:
-                        zandaka = hojo[5]
-                    sheet.append((kamoku[0], hojo[1], '', zandaka,
-                            suitou_umu, kubun))
-                    row_num += 1
+                    if hojo[1] != "【合計】":
+                        suitou_umu = ''
+                        for suitou in suitou_list:
+                            if len(suitou) == 2:
+                                if (suitou[0] == kamoku[0]) \
+                                        and (suitou[1] == hojo[1]):
+                                    suitou_umu = '有'
+                        for hojo2 in hojo_kamoku_list:
+                            if (hojo[0] == hojo2[0]) \
+                                    and (hojo[1] == hojo2[1]):
+                                kubun = hojo2[3]
+                        if (kubun == TAISHAKU_KUBUN_SHUNYU) \
+                                or (kubun == TAISHAKU_KUBUN_SHISHUTSU):
+                            zandaka = 0
+                        else:
+                            zandaka = hojo[5]
+                        sheet.append((kamoku[0], hojo[1], '', zandaka,
+                                suitou_umu, kubun))
+                        row_num += 1
             for kamoku2 in kamoku_list:
                 if kamoku[0] == kamoku2[0]:
                     kubun = kamoku2[2]
@@ -1375,7 +1384,7 @@ def create_yokuki_kihon_sheet(wb,
             sheet[cell.coordinate].border = BORDER_NORMAL
 
     row_end = 5 + row_num
-    d.dprint(row_end)
+#     d.dprint(row_end)
     return (5, row_end)
 
 
@@ -1400,10 +1409,6 @@ def create_yokuki_suitou_sheet(wb, sheet_name, kishu_bi,
             + str(kishu_bi.toordinal()-693594) \
             + ',"' + FORMAT_HIZUKE + '")'
     sheet["A3"] = str_kishu
-#     sheet["A3"] = str(kishu_bi.year+1) +"-" \
-#             + str(kishu_bi.month) + "-" \
-#             + str(kishu_bi.day)
-#     sheet["A3"].number_format = u'yyyy-mm-dd'
     sheet["A3"].number_format = FORMAT_HIZUKE
     sheet["H3"] = kishu_zandaka
     sheet["H3"].number_format = "#,##0"
@@ -1436,10 +1441,9 @@ def create_yokuki_suitou_sheet(wb, sheet_name, kishu_bi,
                 sheet.cell(row=row_index, column=column_index) \
                         .alignment = Alignment(horizontal="center")
         if row_index > 3:
-            str_shiki = "=H{}+F{}-G{}".format(row_index-1, row_index, row_index)
-#             sheet.append(('', '', '', '', '', '', '', '=R[-1]C+RC[-2]-RC[-1]'))
+            # str_shiki = "=H{}+F{}-G{}".format(row_index-1, row_index, row_index)
+            str_shiki = "=OFFSET(H{},-1,0)+F{}-G{}".format(row_index, row_index, row_index)
             sheet.append(('', '', '', '', '', '', '', str_shiki))
-#             sheet.cell(row=row_index, column=1).number_format = u'yyyy-mm-dd'
             sheet.cell(row=row_index, column=1).number_format = FORMAT_HIZUKE
             sheet.cell(row=row_index, column=4).number_format = "@"
             sheet.cell(row=row_index, column=4).number_format = "@"
@@ -1592,8 +1596,6 @@ def read_kihon(excel_file_name, sheet_name):
 #     for index in range(KAMOKU_TITLE_ROW + 1, sheet.max_row):
     for index in range(KAMOKU_TITLE_ROW + 1, sheet.max_row + 1):
         kamoku = sheet.cell(row=index, column=KAMOKU_COLUMN).value
-        d.dprint(kamoku)
-        d.dprint(kamoku[0])
         if (kamoku[0] == '+') or (kamoku[0] == '*'):
             continue
 
@@ -1629,9 +1631,6 @@ def read_kihon(excel_file_name, sheet_name):
     d.dprint(dantai_mei)
     d.dprint(kishu_bi)
     d.dprint(kimatsu_bi)
-    d.dprint_name("kishu_bi", kishu_bi)
-    d.dprint(type(kishu_bi))
-    d.dprint_name("kimatsu_bi", kimatsu_bi)
     d.dprint(kamoku_list)
     d.dprint(hojo_kamoku_list)
     d.dprint(suitou_list)
@@ -1845,7 +1844,7 @@ if __name__ == '__main__':
         hojo_motochou_list.append((hojo_kamoku, hojo_motochou))
         if kamoku_mei != hojo_kamoku[0]:
             hojo_ichiran_list.append(
-                    (kamoku_mei, "計", \
+                    (kamoku_mei, "【合計】", \
                     kishu_kamoku_goukei,
                     karikata_kamoku_goukei,
                     kashikata_kamoku_goukei,
@@ -1863,7 +1862,7 @@ if __name__ == '__main__':
         kashikata_kamoku_goukei += kashikata_goukei
         kimatsu_kamoku_goukei += zandaka
     hojo_ichiran_list.append(
-            (kamoku_mei, "計", \
+            (kamoku_mei, "【合計】", \
             kishu_kamoku_goukei,
             karikata_kamoku_goukei,
             kashikata_kamoku_goukei,
