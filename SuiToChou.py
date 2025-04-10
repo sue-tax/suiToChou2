@@ -223,6 +223,7 @@ def read_suitou(excel_file_name, sheet_name,
     del df_suitou
     del df_nyukin
     del df_shukkin
+    d.dprint(df_shiwake)
     d.dprint_method_end()
     return df_shiwake
 
@@ -289,6 +290,7 @@ def read_tanitsu_shiwake(excel_file_name, sheet_name):
             KASHIKATA_KAMOKU, KASHIKATA_HOJO_KAMOKU, KASHIKATA_KINGAKU,
             TEKIYOU],
             axis='columns')
+    d.dprint(df_furikae)
     d.dprint_method_end()
     return df_furikae
 
@@ -317,7 +319,8 @@ def ketsugou_shiwake(list_df_shiwake, list_suitou_kamoku):
     df_ketsugou = pd.concat(list_df_shiwake, ignore_index=True)
     df_ketsugou.sort_values([HIZUKE, DENPYOU_BANGOU],
             inplace=True)
-
+    d.dprint(df_ketsugou)
+    
     # 重複を削除
     index_pair_list = []
     for _, row in df_ketsugou.iterrows():
@@ -357,9 +360,11 @@ def ketsugou_shiwake(list_df_shiwake, list_suitou_kamoku):
     for pair in index_pair_set:
         # TODO 摘要    異なっていれば、合成する？
         index_drop_list.append(pair[1])
+    d.dprint(index_drop_list)
     df_ketsugou.drop(index_drop_list, inplace=True)
     df_ketsugou[DENPYOU_BANGOU] = df_ketsugou.index + 1
 
+    d.dprint(df_ketsugou)
     d.dprint_method_end()
     return df_ketsugou
 
@@ -1070,7 +1075,10 @@ def save_shiwakechou_file(file_name,
     str_kimatsu = "TEXT(" \
             + str(kimatsu_bi.toordinal()-693594) \
             + ',"' + FORMAT_KIKAN + '")'
-    sheet["B2"] = "=CONCATENATE(" + str_kishu \
+    # sheet["B2"] = "=CONCATENATE(" + str_kishu \
+    #         + ',"～" ,' + str_kimatsu + ")"
+    # version0.11
+    sheet["E2"] = "=CONCATENATE(" + str_kishu \
             + ',"～" ,' + str_kimatsu + ")"
 #     sheet["B2"] = str(kaishi_bi.year) +"年" \
 #             + str(kaishi_bi.month) + "月" \
@@ -1230,7 +1238,9 @@ def save_yokuki_kihon(file_name,
             for kamoku in shisanhyou_list:
                 if kamoku[0] == suitou[0]:
                     break
-            create_yokuki_suitou_sheet(wb, suitou[0], kishu_bi,
+            create_yokuki_suitou_sheet(wb,
+                    suitou[0],
+                    kishu_bi,
                     suitou[0], kamoku[4],
                     dv_kamoku, dv_hojo)
         elif len(suitou) == 2:
@@ -1238,10 +1248,11 @@ def save_yokuki_kihon(file_name,
                 if (hojo[0] == suitou[0]) \
                         and (hojo[1] == suitou[1]):
                     break
+            # version0.11
             create_yokuki_suitou_sheet(wb,
                     suitou[0] + '_' + suitou[1],
                     kishu_bi,
-                    suitou[0] + suitou[1], hojo[5],
+                    suitou[0] + ' ' + suitou[1], hojo[5],
                     dv_kamoku, dv_hojo)
 
     # 振替伝票用のシート作成
@@ -1410,6 +1421,9 @@ def create_yokuki_suitou_sheet(wb, sheet_name, kishu_bi,
             + ',"' + FORMAT_HIZUKE + '")'
     sheet["A3"] = str_kishu
     sheet["A3"].number_format = FORMAT_HIZUKE
+    # version0.11
+    sheet["A3"].alignment \
+            = Alignment(horizontal="right")
     sheet["H3"] = kishu_zandaka
     sheet["H3"].number_format = "#,##0"
 
@@ -1426,7 +1440,6 @@ def create_yokuki_suitou_sheet(wb, sheet_name, kishu_bi,
     sheet["F3"].border = border_obj
     sheet["G3"].border = border_obj
     sheet["H3"].border = BORDER_NORMAL
-
 
     global KAMOKU_W, HOJO_W, KINGAKU_W
     global SUITOU_W, KUBUN_W
