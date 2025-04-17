@@ -8,14 +8,19 @@ Created on 2021/02/09
 '''
 
 '''
-出納帳のExcelデータを、
-残高CSVファイルと仕訳CSVファイルに
-変換する。
-    dataframe にデータを放り込む
+出納帳のExcelデータを元に、
+残高試算表・仕訳帳・総勘定元帳・補助元帳のExcelファイルと
+翌期入力用の出納帳のExcelファイルを
+作成する
+
+dataframe にデータを放り込む
 現金・預金間で重複するデータは削除する
 伝票番号を自動生成する
+
 部門、税区分、税額は対応しない
 '''
+
+__version__ = 0.12
 
 import pandas as pd
 import openpyxl as xl
@@ -1655,7 +1660,7 @@ def read_kihon(excel_file_name, sheet_name):
 def read_settei(excel_file_name, sheet_name):
     '''
     Excelの設定ファイル内の設定シートから、
-    設定データ（ファイル名、セルの横幅）を読込む。
+    設定データ（ファイル名、セルの横幅、フォーマット）を読込む。
 
     Parameters
     ----------
@@ -1684,13 +1689,37 @@ def read_settei(excel_file_name, sheet_name):
     global INPUT_FILE_NAME, SHISANHYOU_FILE_NAME
     global SOUKANJOU_MOTOCHOU_FILE_NAME, HOJO_MOTOCHOU_FILE_NAME
     global SHIWAKECHOU_FILE_NAME
-    global YOKUKI_FILE_NAME
+    global YOKUNENDO_FILE_NAME
     INPUT_FILE_NAME = sheet.cell(row=1, column=2).value
+    if INPUT_FILE_NAME == "" or INPUT_FILE_NAME == None:
+        msg = "B1のセルには、会計データの入力ファイル名を入れてください。"
+        e.eprint('ファイル名の指定がありません', msg)
+        exit()
     SHISANHYOU_FILE_NAME = sheet.cell(row=2, column=2).value
+    if SHISANHYOU_FILE_NAME == "" or SHISANHYOU_FILE_NAME == None:
+        msg = "B2のセルには、残高試算表ファイル名を入れてください。"
+        e.eprint('ファイル名の指定がありません', msg)
+        exit()
     SOUKANJOU_MOTOCHOU_FILE_NAME = sheet.cell(row=3, column=2).value
+    if SOUKANJOU_MOTOCHOU_FILE_NAME == "" or SOUKANJOU_MOTOCHOU_FILE_NAME == None:
+        msg = "B3のセルには、総勘定元帳ファイル名を入れてください。"
+        e.eprint('ファイル名の指定がありません', msg)
+        exit()
     HOJO_MOTOCHOU_FILE_NAME = sheet.cell(row=4, column=2).value
+    if HOJO_MOTOCHOU_FILE_NAME == "" or HOJO_MOTOCHOU_FILE_NAME == None:
+        msg = "B4のセルには、補助元帳ファイル名を入れてください。"
+        e.eprint('ファイル名の指定がありません', msg)
+        exit()
     SHIWAKECHOU_FILE_NAME = sheet.cell(row=5, column=2).value
-    YOKUKI_FILE_NAME = sheet.cell(row=6, column=2).value
+    if SHIWAKECHOU_FILE_NAME == "" or SHIWAKECHOU_FILE_NAME == None:
+        msg = "B5のセルには、仕訳帳ファイル名を入れてください。"
+        e.eprint('ファイル名の指定がありません', msg)
+        exit()
+    YOKUNENDO_FILE_NAME = sheet.cell(row=6, column=2).value
+    if YOKUNENDO_FILE_NAME == "" or YOKUNENDO_FILE_NAME == None:
+        msg = "B6のセルには、翌年度会計データのファイル名を入れてください。"
+        e.eprint('ファイル名の指定がありません', msg)
+        exit()
 
     global TAKASA
     TAKASA = read_cell(excel_file_name, sheet_name,
@@ -1907,8 +1936,8 @@ if __name__ == '__main__':
                 shiwake_chou)
 
     # 翌期用Excel作成
-    if YOKUKI_FILE_NAME != None:
-        save_yokuki_kihon(YOKUKI_FILE_NAME,
+    if YOKUNENDO_FILE_NAME != None:
+        save_yokuki_kihon(YOKUNENDO_FILE_NAME,
                 dantai_mei, kishu_bi, kimatsu_bi,
                 suitou_list, shisanhyou_list, hojo_ichiran_list,
                 kamoku_list, hojo_kamoku_list)
