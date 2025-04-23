@@ -1,0 +1,4 @@
+cd C:\Users\sue-t\Documents\workspace\SuiToChou2
+C:\pleiades\2023-12\python\3\Scripts\pyinstaller SuiToChou.py --onefile --noconsole
+
+dist フォルダに生成される
