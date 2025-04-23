@@ -310,6 +310,82 @@ def read_tanitsu_shiwake(excel_file_name, sheet_name):
     return df_furikae
 
 
+def read_furikae_shiwake(excel_file_name, sheet_name):
+    # TODO 伝票番号を要検討
+    '''
+    Excelファイル内の振替仕訳シートを読込み、
+    仕訳データを作成する。
+
+    Parameters
+    ----------
+    excel_file_name : str
+        読込むExcelファイル名。
+    sheet_name : str
+        振替仕訳データが入力されているシート名。
+
+    Returns
+    df_shwake : DataFrame
+        仕訳データ。
+    -------
+    '''
+    d.dprint_method_start()
+
+    openpyxl.reader.excel.warnings.simplefilter('ignore') # warning 対策　入力規則無視
+    if not os.path.isfile(excel_file_name):
+        e.eprint('ファイルがありません', excel_file_name)
+        exit()
+    try:
+        df_furikae = pd.read_excel(excel_file_name, sheet_name, \
+                header=0,
+                skiprows=[F_TITLE_ROW],
+                usecols=[F_HIZUKE_COLUMN,
+                        F_KARIKATA_KAMOKU_COLUMN, F_KARIKATA_HOJO_KAMOKU_COLUMN,
+                        F_KARIKATA_KINGAKU_COLUMN,
+                        F_KASHIKATA_KAMOKU_COLUMN, F_KASHIKATA_HOJO_KAMOKU_COLUMN,
+                        F_KASHIKATA_KINGAKU_COLUMN,
+                        F_TEKIYOU_COLUMN, F_TEKIYOU2_COLUMN],
+                engine='openpyxl')
+    except:
+        msg = "ファイル「{}」にシート「{}」が必要です。" \
+                .format(excel_file_name, sheet_name)
+        e.eprint('シートがありません', msg)
+        exit()
+
+    # TODO 
+    # 順番に処理する
+    # 日付あり　先頭
+    # 借方、貸方の先頭の勘定科目を相手方とする
+    # 日付欄に「合計」とあるまでが振替伝票
+    # 合計額の確認
+    
+    # 日付、借方金額の列を見て、空行と判断し削除する
+    df_furikae.dropna(subset=[HIZUKE, KARIKATA_KINGAKU],
+            how='all', inplace=True)
+    # 要検討
+    df_furikae.insert(1, DENPYOU_BANGOU, df_furikae.index+1)
+    # 空欄にデータを補充
+    df_furikae.fillna({ \
+            KARIKATA_HOJO_KAMOKU: '',
+            TEKIYOU: '',
+            TEKIYOU2: '',
+            KASHIKATA_HOJO_KAMOKU: ''},
+            inplace=True)
+    df_furikae[[KARIKATA_KINGAKU, KASHIKATA_KINGAKU]] \
+            = df_furikae[[KARIKATA_KINGAKU, KASHIKATA_KINGAKU]] \
+            .astype('int')
+    pd.to_datetime(df_furikae[HIZUKE], format="%Y-%m-%d")   # 20210823
+
+    df_furikae[TEKIYOU] = df_furikae[TEKIYOU] + ' ' + df_furikae[TEKIYOU2]
+    df_furikae = df_furikae.reindex([HIZUKE, DENPYOU_BANGOU,
+            KARIKATA_KAMOKU, KARIKATA_HOJO_KAMOKU, KARIKATA_KINGAKU,
+            KASHIKATA_KAMOKU, KASHIKATA_HOJO_KAMOKU, KASHIKATA_KINGAKU,
+            TEKIYOU],
+            axis='columns')
+    d.dprint(df_furikae)
+    d.dprint_method_end()
+    return df_furikae
+
+
 def ketsugou_shiwake(list_df_shiwake, list_suitou_kamoku):
     '''
     複数の仕訳データを結合し、重複仕訳を削除する。
