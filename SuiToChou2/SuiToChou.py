@@ -6,6 +6,9 @@ Created on 2021/02/09
 　　　　　　　　　　　中納言朝忠
 @author: sue-t
 '''
+from pymupdf._mupdf import delete_pdf_hint_page
+from SuiToChou_v006 import F_HIZUKE_COLUMN, F_KARIKATA_KAMOKU_COLUMN, F_KARIKATA_HOJO_KAMOKU_COLUMN
+from pickle import NONE
 
 '''
 出納帳のExcelデータを元に、
@@ -30,7 +33,7 @@ excelシート
 相手は、複合（科目など）
 '''
 
-__version__ = 0.12
+__version__ = 0.20
 
 import pandas as pd
 import openpyxl as xl
@@ -48,7 +51,8 @@ import e
 
 SETTEI_FILE_NAME = r'設定.xlsx'
 SETTEI_SHEET_NAME = r'設定'
-SHIWAKE_SHEET_NAME = r'単一仕訳'
+TANITSU_SHEET_NAME = r'単一仕訳'
+FUKUGOU_SHEET_NAME = r'複合仕訳'
 
 KIHON_SHEET_NAME = '基本'
 
@@ -133,6 +137,8 @@ TAISHAKU_KUBUN_SHISHUTSU = '支出'
 TAISHAKU_KUBUN_SHUSHI = '収支'
 
 TANI_EN = '(単位:円)'
+
+FUKUGOU_GOUKEI = '合計'   # 複合仕訳の終わりを示す
 
 
 def read_suitou(excel_file_name, sheet_name,
@@ -310,7 +316,7 @@ def read_tanitsu_shiwake(excel_file_name, sheet_name):
     return df_furikae
 
 
-def read_furikae_shiwake(excel_file_name, sheet_name):
+def read_fukugou_shiwake(excel_file_name, sheet_name):
     # TODO 伝票番号を要検討
     '''
     Excelファイル内の振替仕訳シートを読込み、
@@ -335,7 +341,7 @@ def read_furikae_shiwake(excel_file_name, sheet_name):
         e.eprint('ファイルがありません', excel_file_name)
         exit()
     try:
-        df_furikae = pd.read_excel(excel_file_name, sheet_name, \
+        df_fukugou = pd.read_excel(excel_file_name, sheet_name, \
                 header=0,
                 skiprows=[F_TITLE_ROW],
                 usecols=[F_HIZUKE_COLUMN,
@@ -351,6 +357,46 @@ def read_furikae_shiwake(excel_file_name, sheet_name):
         e.eprint('シートがありません', msg)
         exit()
 
+    df_furikae = pd.DataFrame(
+            columns=[HIZUKE, DENPYOU_BANGOU,
+                     KARIKATA_KAMOKU, KARIKATA_HOJO_KAMOKU, KARIKATA_KINGAKU,
+                     KASHIKATA_KAMOKU, KASHIKATA_HOJO_KAMOKU, KASHIKATA_KINGAKU,
+                     TEKIYOU, TEKIYOU2])
+    print(df_furikae)
+
+    danpyou_bangou = 1
+    iter_fukugou = df_fukugou.itertuples()
+    line_tuple = next(iter_fukugou)
+    while not pd.isna(line_tuple[F_HIZUKE_COLUMN+1]):
+        print(line_tuple)
+        hizuke = line_tuple[F_HIZUKE_COLUMN+1]
+        karikata_goukei = 0
+        kashikata_goukei = 0
+        karikata_main = None
+        kashikata_main = None
+        while line_tuple[F_HIZUKE_COLUMN+1] != FUKUGOU_GOUKEI:
+            if not pd.isna(line_tuple[F_KARIKATA_KAMOKU_COLUMN+1]): 
+                if karikata_main == None:
+                    karikata_main = line_tuple[F_KARIKATA_KAMOKU_COLUMN+1]
+                karikata_goukei = karikata_goukei + \
+                        line_tuple[F_KARIKATA_KINGAKU_COLUMN+1]
+            if not pd.isna(line_tuple[F_KASHIKATA_KAMOKU_COLUMN+1]): 
+                if kashikata_main == None:
+                    kashikata_main = line_tuple[F_KASHIKATA_KAMOKU_COLUMN+1]
+                kashikata_goukei = kashikata_goukei + \
+                        line_tuple[F_KASHIKATA_KINGAKU_COLUMN+1]
+            print(karikata_goukei)
+            print(kashikata_goukei)
+            try:
+                line_tuple = next(iter_fukugou)
+            except:
+                # TODO 合計行がない
+                break
+        try:        
+            line_tuple = next(iter_fukugou)
+        except:
+            break
+    
     # TODO 
     # 順番に処理する
     # 日付あり　先頭
@@ -358,30 +404,46 @@ def read_furikae_shiwake(excel_file_name, sheet_name):
     # 日付欄に「合計」とあるまでが振替伝票
     # 合計額の確認
     
-    # 日付、借方金額の列を見て、空行と判断し削除する
-    df_furikae.dropna(subset=[HIZUKE, KARIKATA_KINGAKU],
-            how='all', inplace=True)
-    # 要検討
-    df_furikae.insert(1, DENPYOU_BANGOU, df_furikae.index+1)
-    # 空欄にデータを補充
-    df_furikae.fillna({ \
-            KARIKATA_HOJO_KAMOKU: '',
-            TEKIYOU: '',
-            TEKIYOU2: '',
-            KASHIKATA_HOJO_KAMOKU: ''},
-            inplace=True)
-    df_furikae[[KARIKATA_KINGAKU, KASHIKATA_KINGAKU]] \
-            = df_furikae[[KARIKATA_KINGAKU, KASHIKATA_KINGAKU]] \
-            .astype('int')
-    pd.to_datetime(df_furikae[HIZUKE], format="%Y-%m-%d")   # 20210823
-
-    df_furikae[TEKIYOU] = df_furikae[TEKIYOU] + ' ' + df_furikae[TEKIYOU2]
-    df_furikae = df_furikae.reindex([HIZUKE, DENPYOU_BANGOU,
-            KARIKATA_KAMOKU, KARIKATA_HOJO_KAMOKU, KARIKATA_KINGAKU,
-            KASHIKATA_KAMOKU, KASHIKATA_HOJO_KAMOKU, KASHIKATA_KINGAKU,
-            TEKIYOU],
-            axis='columns')
-    d.dprint(df_furikae)
+    # test
+    iter = df_fukugou.itertuples()
+    print(iter)
+    # print(iter[F_KASHIKATA_KAMOKU_COLUMN])
+    t = next(iter)
+    print(iter)
+    # print(iter[F_KASHIKATA_KAMOKU_COLUMN])
+    print(t)
+    print(t[F_KASHIKATA_KAMOKU_COLUMN+1])
+    t = next(iter)
+    print(iter)
+    # print(iter[F_KASHIKATA_KAMOKU_COLUMN])
+    print(t)
+    print(t[F_KASHIKATA_KAMOKU_COLUMN+1])
+    
+    
+    # # 日付、借方金額の列を見て、空行と判断し削除する
+    # df_furikae.dropna(subset=[HIZUKE, KARIKATA_KINGAKU],
+    #         how='all', inplace=True)
+    # # 要検討
+    # df_furikae.insert(1, DENPYOU_BANGOU, df_furikae.index+1)
+    # # 空欄にデータを補充
+    # df_furikae.fillna({ \
+    #         KARIKATA_HOJO_KAMOKU: '',
+    #         TEKIYOU: '',
+    #         TEKIYOU2: '',
+    #         KASHIKATA_HOJO_KAMOKU: ''},
+    #         inplace=True)
+    # df_furikae[[KARIKATA_KINGAKU, KASHIKATA_KINGAKU]] \
+    #         = df_furikae[[KARIKATA_KINGAKU, KASHIKATA_KINGAKU]] \
+    #         .astype('int')
+    # pd.to_datetime(df_furikae[HIZUKE], format="%Y-%m-%d")   # 20210823
+    #
+    # df_furikae[TEKIYOU] = df_furikae[TEKIYOU] + ' ' + df_furikae[TEKIYOU2]
+    # df_furikae = df_furikae.reindex([HIZUKE, DENPYOU_BANGOU,
+    #         KARIKATA_KAMOKU, KARIKATA_HOJO_KAMOKU, KARIKATA_KINGAKU,
+    #         KASHIKATA_KAMOKU, KASHIKATA_HOJO_KAMOKU, KASHIKATA_KINGAKU,
+    #         TEKIYOU],
+    #         axis='columns')
+    # d.dprint(df_furikae)
     d.dprint_method_end()
     return df_furikae
 
@@ -1347,7 +1409,7 @@ def save_yokuki_kihon(file_name,
                     dv_kamoku, dv_hojo)
 
     # 振替伝票用のシート作成
-    create_yokuki_tanitsushiwake_sheet(wb, SHIWAKE_SHEET_NAME,
+    create_yokuki_tanitsushiwake_sheet(wb, TANITSU_SHEET_NAME,
             dv_kamoku_tanitsu, dv_hojo_tanitsu)
 
     try:
@@ -1864,6 +1926,16 @@ if __name__ == '__main__':
     d.dprint_name("kishu_bi", kishu_bi)
     d.dprint_name("kimatsu_bi", kimatsu_bi)
     d.dprint(type(kishu_bi))
+
+
+
+    furikae = read_fukugou_shiwake(INPUT_FILE_NAME,
+            FUKUGOU_SHEET_NAME)
+    exit(-1)
+
+    
+    
+    
     suitou_chou_list = []
     suitou_kamoku_list = []
     for suitou in suitou_list:
@@ -1878,11 +1950,18 @@ if __name__ == '__main__':
             suitou_kamoku_list.append((suitou[0], suitou[1]))
         suitou_chou_list.append(suitou_chou)
 
-    # 自分で入力した仕訳データを読込む
-    furikae = read_tanitsu_shiwake(INPUT_FILE_NAME, SHIWAKE_SHEET_NAME)
+    # 単一仕訳データを読込む
+    furikae = read_tanitsu_shiwake(INPUT_FILE_NAME,
+            TANITSU_SHEET_NAME)
     suitou_chou_list.append(furikae)
 
-    shiwake_chou = ketsugou_shiwake(suitou_chou_list, suitou_kamoku_list)
+    # 複合仕訳データを読込む
+    furikae = read_fukugou_shiwake(INPUT_FILE_NAME,
+            FUKUGOU_SHEET_NAME)
+    exit(-1)
+
+    shiwake_chou = ketsugou_shiwake(suitou_chou_list,
+            suitou_kamoku_list)
     for suitou_chou in suitou_chou_list:
         del suitou_chou
 
