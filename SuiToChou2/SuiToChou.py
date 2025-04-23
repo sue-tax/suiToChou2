@@ -393,9 +393,10 @@ def read_fukugou_shiwake(excel_file_name, sheet_name):
                 # TODO 合計行がない
                 break
         if karikata_goukei != kashikata_goukei:
-            msg = "複合仕訳ファイル「{}」にシート「{}」が必要です。" \
-                    .format(excel_file_name, sheet_name)
-            e.eprint('シートがありません', msg)
+            msg = "{}シートの{}行目の合計が{}と{}です。" \
+                    .format(sheet_name, line_tuple.Index,
+                    karikata_goukei, kashikata_goukei)
+            e.eprint('貸借金額が合っていません', msg)
             exit()
             
         
