@@ -33,8 +33,6 @@ excelシート
 相手は、複合（科目など）
 '''
 
-__version__ = 0.20
-
 import pandas as pd
 import openpyxl as xl
 from openpyxl.utils.dataframe import dataframe_to_rows
@@ -138,6 +136,7 @@ TAISHAKU_KUBUN_SHUSHI = '収支'
 
 TANI_EN = '(単位:円)'
 
+SHOKUCHI = '諸口'         # 複合仕訳の相手科目名
 FUKUGOU_GOUKEI = '合計'   # 複合仕訳の終わりを示す
 
 
@@ -362,9 +361,10 @@ def read_fukugou_shiwake(excel_file_name, sheet_name):
                      KARIKATA_KAMOKU, KARIKATA_HOJO_KAMOKU, KARIKATA_KINGAKU,
                      KASHIKATA_KAMOKU, KASHIKATA_HOJO_KAMOKU, KASHIKATA_KINGAKU,
                      TEKIYOU, TEKIYOU2])
-    print(df_furikae)
+    # print(df_furikae)
 
-    danpyou_bangou = 1
+    denpyou_bangou = -1
+    data_list = []
     iter_fukugou = df_fukugou.itertuples()
     line_tuple = next(iter_fukugou)
     while not pd.isna(line_tuple[F_HIZUKE_COLUMN+1]):
@@ -372,21 +372,48 @@ def read_fukugou_shiwake(excel_file_name, sheet_name):
         hizuke = line_tuple[F_HIZUKE_COLUMN+1]
         karikata_goukei = 0
         kashikata_goukei = 0
-        karikata_main = None
-        kashikata_main = None
+        # karikata_main = None
+        # kashikata_main = None
+        # data_list = []
         while line_tuple[F_HIZUKE_COLUMN+1] != FUKUGOU_GOUKEI:
+            print(line_tuple)
+            # print(line_tuple[F_KARIKATA_KAMOKU_COLUMN])
             if not pd.isna(line_tuple[F_KARIKATA_KAMOKU_COLUMN+1]): 
-                if karikata_main == None:
-                    karikata_main = line_tuple[F_KARIKATA_KAMOKU_COLUMN+1]
-                karikata_goukei = karikata_goukei + \
-                        line_tuple[F_KARIKATA_KINGAKU_COLUMN+1]
+                # if karikata_main == None:
+                #     karikata_main = line_tuple[F_KARIKATA_KAMOKU_COLUMN+1]
+                kingaku = line_tuple[F_KARIKATA_KINGAKU_COLUMN+1]
+                karikata_goukei = karikata_goukei + kingaku
+                new_data = { HIZUKE:hizuke,
+                        DENPYOU_BANGOU:denpyou_bangou,
+                        KARIKATA_KAMOKU: line_tuple[F_KARIKATA_KAMOKU_COLUMN+1],
+                        KARIKATA_HOJO_KAMOKU: line_tuple[F_KARIKATA_HOJO_KAMOKU_COLUMN+1],
+                        KARIKATA_KINGAKU: kingaku,
+                        KASHIKATA_KAMOKU: SHOKUCHI,
+                        KASHIKATA_HOJO_KAMOKU: '',
+                        KASHIKATA_KINGAKU: kingaku,
+                        TEKIYOU:  line_tuple[F_TEKIYOU_COLUMN+1],
+                        TEKIYOU2:  line_tuple[F_TEKIYOU2_COLUMN+1]
+                        }
+                data_list.append(new_data)
             if not pd.isna(line_tuple[F_KASHIKATA_KAMOKU_COLUMN+1]): 
-                if kashikata_main == None:
-                    kashikata_main = line_tuple[F_KASHIKATA_KAMOKU_COLUMN+1]
-                kashikata_goukei = kashikata_goukei + \
-                        line_tuple[F_KASHIKATA_KINGAKU_COLUMN+1]
-            print(karikata_goukei)
-            print(kashikata_goukei)
+                # if kashikata_main == None:
+                #     kashikata_main = line_tuple[F_KASHIKATA_KAMOKU_COLUMN+1]
+                kingaku = line_tuple[F_KASHIKATA_KINGAKU_COLUMN+1]
+                kashikata_goukei = kashikata_goukei + kingaku
+                new_data = { HIZUKE:hizuke,
+                        DENPYOU_BANGOU:denpyou_bangou,
+                        KARIKATA_KAMOKU: SHOKUCHI,
+                        KARIKATA_HOJO_KAMOKU: '',
+                        KARIKATA_KINGAKU: kingaku,
+                        KASHIKATA_KAMOKU: line_tuple[F_KASHIKATA_KAMOKU_COLUMN+1],
+                        KASHIKATA_HOJO_KAMOKU: line_tuple[F_KASHIKATA_HOJO_KAMOKU_COLUMN+1],
+                        KASHIKATA_KINGAKU: kingaku,
+                        TEKIYOU:  line_tuple[F_TEKIYOU_COLUMN+1],
+                        TEKIYOU2:  line_tuple[F_TEKIYOU2_COLUMN+1]
+                        }
+                data_list.append(new_data)
+            # print(karikata_goukei)
+            # print(kashikata_goukei)
             try:
                 line_tuple = next(iter_fukugou)
             except:
@@ -398,14 +425,17 @@ def read_fukugou_shiwake(excel_file_name, sheet_name):
                     karikata_goukei, kashikata_goukei)
             e.eprint('貸借金額が合っていません', msg)
             exit()
-            
-        
+        # df_furikae = pd.concat([df_furikae, pd.DataFrame(data_list)])
         
         try:        
             line_tuple = next(iter_fukugou)
         except:
             break
+        
+        denpyou_bangou -= 1
     
+    df_furikae = pd.concat([df_furikae, pd.DataFrame(data_list)])
+    print(df_furikae)
     # TODO 
     # 順番に処理する
     # 日付あり　先頭
@@ -413,46 +443,25 @@ def read_fukugou_shiwake(excel_file_name, sheet_name):
     # 日付欄に「合計」とあるまでが振替伝票
     # 合計額の確認
     
-    # test
-    iter = df_fukugou.itertuples()
-    print(iter)
-    # print(iter[F_KASHIKATA_KAMOKU_COLUMN])
-    t = next(iter)
-    print(iter)
-    # print(iter[F_KASHIKATA_KAMOKU_COLUMN])
-    print(t)
-    print(t[F_KASHIKATA_KAMOKU_COLUMN+1])
-    t = next(iter)
-    print(iter)
-    # print(iter[F_KASHIKATA_KAMOKU_COLUMN])
-    print(t)
-    print(t[F_KASHIKATA_KAMOKU_COLUMN+1])
+    # 空欄にデータを補充
+    df_furikae.fillna({ \
+            KARIKATA_HOJO_KAMOKU: '',
+            TEKIYOU: '',
+            TEKIYOU2: '',
+            KASHIKATA_HOJO_KAMOKU: ''},
+            inplace=True)
+    df_furikae[[KARIKATA_KINGAKU, KASHIKATA_KINGAKU]] \
+            = df_furikae[[KARIKATA_KINGAKU, KASHIKATA_KINGAKU]] \
+            .astype('int')
+    pd.to_datetime(df_furikae[HIZUKE], format="%Y-%m-%d")   # 20210823
     
-    
-    # # 日付、借方金額の列を見て、空行と判断し削除する
-    # df_furikae.dropna(subset=[HIZUKE, KARIKATA_KINGAKU],
-    #         how='all', inplace=True)
-    # # 要検討
-    # df_furikae.insert(1, DENPYOU_BANGOU, df_furikae.index+1)
-    # # 空欄にデータを補充
-    # df_furikae.fillna({ \
-    #         KARIKATA_HOJO_KAMOKU: '',
-    #         TEKIYOU: '',
-    #         TEKIYOU2: '',
-    #         KASHIKATA_HOJO_KAMOKU: ''},
-    #         inplace=True)
-    # df_furikae[[KARIKATA_KINGAKU, KASHIKATA_KINGAKU]] \
-    #         = df_furikae[[KARIKATA_KINGAKU, KASHIKATA_KINGAKU]] \
-    #         .astype('int')
-    # pd.to_datetime(df_furikae[HIZUKE], format="%Y-%m-%d")   # 20210823
-    #
-    # df_furikae[TEKIYOU] = df_furikae[TEKIYOU] + ' ' + df_furikae[TEKIYOU2]
-    # df_furikae = df_furikae.reindex([HIZUKE, DENPYOU_BANGOU,
-    #         KARIKATA_KAMOKU, KARIKATA_HOJO_KAMOKU, KARIKATA_KINGAKU,
-    #         KASHIKATA_KAMOKU, KASHIKATA_HOJO_KAMOKU, KASHIKATA_KINGAKU,
-    #         TEKIYOU],
-    #         axis='columns')
-    # d.dprint(df_furikae)
+    df_furikae[TEKIYOU] = df_furikae[TEKIYOU] + ' ' + df_furikae[TEKIYOU2]
+    df_furikae = df_furikae.reindex([HIZUKE, DENPYOU_BANGOU,
+            KARIKATA_KAMOKU, KARIKATA_HOJO_KAMOKU, KARIKATA_KINGAKU,
+            KASHIKATA_KAMOKU, KASHIKATA_HOJO_KAMOKU, KASHIKATA_KINGAKU,
+            TEKIYOU],
+            axis='columns')
+    d.dprint(df_furikae)
     d.dprint_method_end()
     return df_furikae
 
