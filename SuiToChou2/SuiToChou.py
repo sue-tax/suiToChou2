@@ -7,7 +7,8 @@ Created on 2021/02/09
 @author: sue-t
 '''
 from pymupdf._mupdf import delete_pdf_hint_page
-from SuiToChou_v006 import F_HIZUKE_COLUMN, F_KARIKATA_KAMOKU_COLUMN, F_KARIKATA_HOJO_KAMOKU_COLUMN
+from SuiToChou_v006 import F_HIZUKE_COLUMN, F_KARIKATA_KAMOKU_COLUMN, F_KARIKATA_HOJO_KAMOKU_COLUMN,\
+    F_KARIKATA_KINGAKU_COLUMN
 from pickle import NONE
 
 '''
@@ -418,31 +419,36 @@ def read_fukugou_shiwake(excel_file_name, sheet_name):
                 line_tuple = next(iter_fukugou)
             except:
                 # TODO 合計行がない
-                break
+                msg = "{}シートの{}行目の次に合計行が必要です。" \
+                        .format(sheet_name, line_tuple.Index)
+                e.eprint('合計行がありません', msg)
+                exit()
         if karikata_goukei != kashikata_goukei:
             msg = "{}シートの{}行目の合計が{}と{}です。" \
                     .format(sheet_name, line_tuple.Index,
                     karikata_goukei, kashikata_goukei)
             e.eprint('貸借金額が合っていません', msg)
             exit()
+        if line_tuple[F_KARIKATA_KINGAKU_COLUMN+1] != karikata_goukei:
+            msg = "{}シートの{}行目の合計{}と借方金額の集計額が{}です。" \
+                    .format(sheet_name, line_tuple.Index,
+                    karikata_goukei, line_tuple[F_KARIKATA_KINGAKU_COLUMN+1])
+            e.eprint('合計金額が合っていません', msg)
+            exit()
+        if line_tuple[F_KASHIKATA_KINGAKU_COLUMN+1] != kashikata_goukei:
+            msg = "{}シートの{}行目の合計{}と貸方金額の集計額が{}です。" \
+                    .format(sheet_name, line_tuple.Index,
+                    kashikata_goukei, line_tuple[F_KASHIKATA_KINGAKU_COLUMN+1])
+            e.eprint('合計金額が合っていません', msg)
+            exit()
         # df_furikae = pd.concat([df_furikae, pd.DataFrame(data_list)])
-        
         try:        
             line_tuple = next(iter_fukugou)
         except:
             break
-        
         denpyou_bangou -= 1
     
     df_furikae = pd.concat([df_furikae, pd.DataFrame(data_list)])
-    print(df_furikae)
-    # TODO 
-    # 順番に処理する
-    # 日付あり　先頭
-    # 借方、貸方の先頭の勘定科目を相手方とする
-    # 日付欄に「合計」とあるまでが振替伝票
-    # 合計額の確認
-    
     # 空欄にデータを補充
     df_furikae.fillna({ \
             KARIKATA_HOJO_KAMOKU: '',
@@ -466,9 +472,11 @@ def read_fukugou_shiwake(excel_file_name, sheet_name):
     return df_furikae
 
 
-def ketsugou_shiwake(list_df_shiwake, list_suitou_kamoku):
+def ketsugou_shiwake(list_df_shiwake, list_suitou_kamoku,
+             df_fukugou_shiwake):
     '''
     複数の仕訳データを結合し、重複仕訳を削除する。
+    複合仕訳も結合する（伝票番号の振り直し、重複削除はしない）
 
     Parameters
     ----------
@@ -477,6 +485,8 @@ def ketsugou_shiwake(list_df_shiwake, list_suitou_kamoku):
     list_suitou_kamoku : list of tuple of str
         出納帳データの科目・補助科目のタプルのリスト
         ex. [('現金', ''), ('普通預金', '三菱ＵＦＪ')]
+    df_fukugou_shiwake : DataFrame
+        複合仕訳データのリスト
 
     Returns
     df_shiwake : DataFrame
@@ -535,6 +545,10 @@ def ketsugou_shiwake(list_df_shiwake, list_suitou_kamoku):
     df_ketsugou.drop(index_drop_list, inplace=True)
     df_ketsugou[DENPYOU_BANGOU] = df_ketsugou.index + 1
 
+    df_ketsugou = pd.concat([df_ketsugou, df_fukugou_shiwake])
+    df_ketsugou.sort_values([HIZUKE],
+            inplace=True)
+    
     d.dprint(df_ketsugou)
     d.dprint_method_end()
     return df_ketsugou
@@ -1945,15 +1959,6 @@ if __name__ == '__main__':
     d.dprint_name("kimatsu_bi", kimatsu_bi)
     d.dprint(type(kishu_bi))
 
-
-
-    furikae = read_fukugou_shiwake(INPUT_FILE_NAME,
-            FUKUGOU_SHEET_NAME)
-    exit(-1)
-
-    
-    
-    
     suitou_chou_list = []
     suitou_kamoku_list = []
     for suitou in suitou_list:
@@ -1969,19 +1974,19 @@ if __name__ == '__main__':
         suitou_chou_list.append(suitou_chou)
 
     # 単一仕訳データを読込む
-    furikae = read_tanitsu_shiwake(INPUT_FILE_NAME,
+    tanitsu = read_tanitsu_shiwake(INPUT_FILE_NAME,
             TANITSU_SHEET_NAME)
-    suitou_chou_list.append(furikae)
+    suitou_chou_list.append(tanitsu)
 
     # 複合仕訳データを読込む
-    furikae = read_fukugou_shiwake(INPUT_FILE_NAME,
+    fukugou = read_fukugou_shiwake(INPUT_FILE_NAME,
             FUKUGOU_SHEET_NAME)
-    exit(-1)
 
     shiwake_chou = ketsugou_shiwake(suitou_chou_list,
-            suitou_kamoku_list)
+            suitou_kamoku_list, fukugou)
     for suitou_chou in suitou_chou_list:
         del suitou_chou
+    d.dprint(shiwake_chou)
 
     # 総勘定元帳、補助元帳データ作成
     d.dprint_name("kishu_bi", kishu_bi)
