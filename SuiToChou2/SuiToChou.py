@@ -516,6 +516,8 @@ def ketsugou_shiwake(list_df_shiwake, list_suitou_kamoku,
                 and \
                 ((row[KASHIKATA_KAMOKU], row[KASHIKATA_HOJO_KAMOKU]) \
                         in list_suitou_kamoku):
+            # 借方も貸方も、出納帳の科目である場合
+            # 日付、借方科目、貸方科目、金額が一致するものをピックアップ
             index_pair = df_ketsugou.index[ \
                     (df_ketsugou[HIZUKE] == row[HIZUKE]) \
                     & (df_ketsugou[KARIKATA_KAMOKU] == row[KARIKATA_KAMOKU]) \
@@ -550,10 +552,53 @@ def ketsugou_shiwake(list_df_shiwake, list_suitou_kamoku,
     df_ketsugou.drop(index_drop_list, inplace=True)
     df_ketsugou[DENPYOU_BANGOU] = df_ketsugou.index + 1
 
+    # 複合仕訳と出納帳の重複を削除
+    index_pair_list = []
+    for _, row in df_fukugou_shiwake.iterrows():
+        if \
+                ((row[KARIKATA_KAMOKU], row[KARIKATA_HOJO_KAMOKU]) \
+                        in list_suitou_kamoku) \
+                and \
+                (row[KASHIKATA_KAMOKU] == SHOKUCHI):
+            print(row)
+            # 借方が出納帳科目、貸方が諸口
+            # 日付、借方、貸方、金額が同じものをリストアップ
+            index_pair = df_ketsugou.index[ \
+                    (df_ketsugou[HIZUKE] == row[HIZUKE]) \
+                    & (df_ketsugou[KARIKATA_KAMOKU] == row[KARIKATA_KAMOKU]) \
+                    & (df_ketsugou[KARIKATA_HOJO_KAMOKU] == row[KARIKATA_HOJO_KAMOKU]) \
+                    & (df_ketsugou[KASHIKATA_KAMOKU] == SHOKUCHI) \
+                    & (df_ketsugou[KARIKATA_KINGAKU] == row[KARIKATA_KINGAKU]) \
+                    & (df_ketsugou[KASHIKATA_KINGAKU] == row[KASHIKATA_KINGAKU])]
+            if (len(index_pair) > 0):
+                # 一致したものの最初の１つだけを削除
+                index_drop_list = index_pair[0:1]
+                df_ketsugou.drop(index_drop_list, inplace=True)
+        if \
+                ((row[KASHIKATA_KAMOKU], row[KASHIKATA_HOJO_KAMOKU]) \
+                        in list_suitou_kamoku) \
+                and \
+                (row[KARIKATA_KAMOKU] == SHOKUCHI):
+            # 貸方が出納帳科目、借方が諸口
+            print(row)
+            # 日付、借方、貸方、金額が同じものをリストアップ
+            index_pair = df_ketsugou.index[ \
+                    (df_ketsugou[HIZUKE] == row[HIZUKE]) \
+                    & (df_ketsugou[KASHIKATA_KAMOKU] == row[KASHIKATA_KAMOKU]) \
+                    & (df_ketsugou[KASHIKATA_HOJO_KAMOKU] == row[KASHIKATA_HOJO_KAMOKU]) \
+                    & (df_ketsugou[KARIKATA_KAMOKU] == SHOKUCHI) \
+                    & (df_ketsugou[KARIKATA_KINGAKU] == row[KARIKATA_KINGAKU]) \
+                    & (df_ketsugou[KASHIKATA_KINGAKU] == row[KASHIKATA_KINGAKU])]
+            print(index_pair)
+            if (len(index_pair) > 0):
+                # 一致したものの最初の１つだけを削除
+                index_drop_list = index_pair[0:1]
+                df_ketsugou.drop(index_drop_list, inplace=True)
+
     df_ketsugou = pd.concat([df_ketsugou, df_fukugou_shiwake])
     df_ketsugou.sort_values([HIZUKE],
             inplace=True)
-    
+
     d.dprint(df_ketsugou)
     d.dprint_method_end()
     return df_ketsugou
