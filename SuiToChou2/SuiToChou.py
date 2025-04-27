@@ -316,7 +316,10 @@ def read_tanitsu_shiwake(excel_file_name, sheet_name):
             .astype('int')
     pd.to_datetime(df_furikae[HIZUKE], format="%Y-%m-%d")   # 20210823
 
-    df_furikae[TEKIYOU] = df_furikae[TEKIYOU] + ' ' + df_furikae[TEKIYOU2]
+    d.dprint(df_furikae)
+    if len(df_furikae) > 0:
+        df_furikae[TEKIYOU] = df_furikae[TEKIYOU] + \
+                ' ' + df_furikae[TEKIYOU2]
     df_furikae = df_furikae.reindex([HIZUKE, DENPYOU_BANGOU,
             KARIKATA_KAMOKU, KARIKATA_HOJO_KAMOKU, KARIKATA_KINGAKU,
             KASHIKATA_KAMOKU, KASHIKATA_HOJO_KAMOKU, KASHIKATA_KINGAKU,
@@ -328,7 +331,6 @@ def read_tanitsu_shiwake(excel_file_name, sheet_name):
 
 
 def read_fukugou_shiwake(excel_file_name, sheet_name):
-    # TODO 伝票番号を要検討
     '''
     Excelファイル内の振替仕訳シートを読込み、
     仕訳データを作成する。
@@ -472,7 +474,9 @@ def read_fukugou_shiwake(excel_file_name, sheet_name):
             .astype('int')
     pd.to_datetime(df_furikae[HIZUKE], format="%Y-%m-%d")   # 20210823
     
-    df_furikae[TEKIYOU] = df_furikae[TEKIYOU] + ' ' + df_furikae[TEKIYOU2]
+    if len(df_furikae) > 0:
+        df_furikae[TEKIYOU] = df_furikae[TEKIYOU] + \
+                ' ' + df_furikae[TEKIYOU2]
     df_furikae = df_furikae.reindex([HIZUKE, DENPYOU_BANGOU,
             KARIKATA_KAMOKU, KARIKATA_HOJO_KAMOKU, KARIKATA_KINGAKU,
             KASHIKATA_KAMOKU, KASHIKATA_HOJO_KAMOKU, KASHIKATA_KINGAKU,
@@ -1445,29 +1449,16 @@ def save_yokuki_kihon(file_name,
     for kamoku in kamoku_list:
         kamoku_unique_list.append(kamoku[0])
     str_kamoku_list = '"' + ','.join(kamoku_unique_list) + '"'
-#     formula_kamoku = "基本!$A${}:$A${}".format(row_start, row_end)
-#     d.dprint_name("formula_kamoku", formula_kamoku)
-#     dv_kamoku = DataValidation(type="list", formula1=formula_kamoku)
-#     dv_kamoku = DataValidation(type="list",
-#             formula1=str_kamoku_list, allow_blank=False)
-#     dv_kamoku_tanitsu = DataValidation(type="list",
-#             formula1=str_kamoku_list, allow_blank=False)
     dv_kamoku = DataValidation(type="list",
             formula1=str_kamoku_list, allow_blank=True)
     dv_kamoku_tanitsu = DataValidation(type="list",
             formula1=str_kamoku_list, allow_blank=True)
 
-#     formula_hojo = "基本!$B${}:$B${}".format(row_start, row_end)
-#     dv_hojo = DataValidation(type="list", formula1=formula_hojo)
     hojo_unique_list = []
     for hojo in hojo_kamoku_list:
         if hojo[1] not in hojo_unique_list:
             hojo_unique_list.append(hojo[1])
     str_hojo_list = '"' + ','.join(hojo_unique_list) + '"'
-#     dv_hojo = DataValidation(type="list",
-#             formula1=str_hojo_list, allow_blank=False)
-#     dv_hojo_tanitsu = DataValidation(type="list",
-#             formula1=str_hojo_list, allow_blank=False)
     dv_hojo = DataValidation(type="list",
             formula1=str_hojo_list, allow_blank=True)
     dv_hojo_tanitsu = DataValidation(type="list",
@@ -1496,8 +1487,11 @@ def save_yokuki_kihon(file_name,
                     suitou[0] + ' ' + suitou[1], hojo[5],
                     dv_kamoku, dv_hojo)
 
-    # 振替伝票用のシート作成
+    # 単一仕訳用のシート作成
     create_yokuki_tanitsushiwake_sheet(wb, TANITSU_SHEET_NAME,
+            dv_kamoku_tanitsu, dv_hojo_tanitsu)
+    # 複合仕訳用のシート作成
+    create_yokuki_fukugoushiwake_sheet(wb, FUKUGOU_SHEET_NAME,
             dv_kamoku_tanitsu, dv_hojo_tanitsu)
 
     try:
@@ -1735,6 +1729,23 @@ def create_yokuki_suitou_sheet(wb, sheet_name, kishu_bi,
 
 def create_yokuki_tanitsushiwake_sheet(wb, sheet_name,
             dv_kamoku, dv_hojo):
+    '''
+    翌期入力用のExcelファイルに単一仕訳シートを作成する。
+
+    Parameters
+    ----------
+    wb : workbook
+        翌期入力用Excelファイル
+    sheet_name : sheet_name
+        単一仕訳シートのシート名
+    dv_kamoku :
+        勘定科目のドロップダウンリスト設定用データ
+    dv_hojo :
+        補助科目のドロップダウンリスト設定用データ
+
+    Returns
+    -------
+    '''
     sheet = wb.create_sheet(title=sheet_name)
     sheet["A1"] = sheet_name
 
@@ -1756,17 +1767,24 @@ def create_yokuki_tanitsushiwake_sheet(wb, sheet_name,
         if row_index == 2:
             for column_index in range(1, 9+1):
                 sheet.cell(row=row_index, column=column_index) \
-                        .alignment = Alignment(horizontal="center")
+                        .alignment = \
+                        Alignment(horizontal="center")
         if row_index > 2:
             sheet.append(('', '', '', '', '', '', '', '', ''))
-#             sheet.cell(row=row_index, column=1).number_format = u'yyyy-mm-dd'
+            # 書式の設定
             sheet.cell(row=row_index, column=1).number_format = FORMAT_HIZUKE
             sheet.cell(row=row_index, column=4).number_format = "#,##0"
             sheet.cell(row=row_index, column=7).number_format = "#,##0"
+            # ドロップダウンリストの設定
             dv_kamoku.add(sheet.cell(row_index, 2))
             dv_hojo.add(sheet.cell(row_index, 3))
             dv_kamoku.add(sheet.cell(row_index, 5))
             dv_hojo.add(sheet.cell(row_index, 6))
+            # 貸方金額に式を設定
+            # sheet.cell(row=row_index, column=7).value = \
+            #         '=RC[-3]'
+            sheet.cell(row=row_index, column=7).value = \
+                    '=D{}'.format(row_index)
         if (row_index == 2) or (row_index > 2):
             for column_index in range(1, 9+1):
                 sheet.cell(row=row_index, column=column_index) \
@@ -1774,6 +1792,7 @@ def create_yokuki_tanitsushiwake_sheet(wb, sheet_name,
     global KAMOKU_W, HOJO_W, KINGAKU_W
     global SUITOU_W, KUBUN_W
     global HIZUKE_W, TEKIYOU_W
+    # 各列の横幅の設定
     sheet.column_dimensions['A'].width = HIZUKE_W
     sheet.column_dimensions['B'].width = KAMOKU_W
     sheet.column_dimensions['C'].width = HOJO_W
@@ -1783,6 +1802,7 @@ def create_yokuki_tanitsushiwake_sheet(wb, sheet_name,
     sheet.column_dimensions['G'].width = KINGAKU_W
     sheet.column_dimensions['H'].width = TEKIYOU1_W
     sheet.column_dimensions['I'].width = TEKIYOU2_W
+    # 印刷設定
     sheet.page_setup.orientation \
             = sheet.ORIENTATION_PORTRAIT
     sheet.page_setup.fitToWidth = 1
@@ -1794,6 +1814,90 @@ def create_yokuki_tanitsushiwake_sheet(wb, sheet_name,
     sheet.add_data_validation(dv_hojo)
 
     return
+
+def create_yokuki_fukugoushiwake_sheet(wb, sheet_name,
+            dv_kamoku, dv_hojo):
+    '''
+    翌期入力用のExcelファイルに複合仕訳シートを作成する。
+
+    Parameters
+    ----------
+    wb : workbook
+        翌期入力用Excelファイル
+    sheet_name : sheet_name
+        複合仕訳シートのシート名
+    dv_kamoku :
+        勘定科目のドロップダウンリスト設定用データ
+    dv_hojo :
+        補助科目のドロップダウンリスト設定用データ
+
+    Returns
+    -------
+    '''
+    sheet = wb.create_sheet(title=sheet_name)
+    sheet["A1"] = sheet_name
+
+    sheet["A2"] = HIZUKE
+    sheet["B2"] = KARIKATA_KAMOKU
+    sheet["C2"] = KARIKATA_HOJO_KAMOKU
+    sheet["D2"] = KARIKATA_KINGAKU
+    sheet["E2"] = KASHIKATA_KAMOKU
+    sheet["F2"] = KASHIKATA_HOJO_KAMOKU
+    sheet["G2"] = KASHIKATA_KINGAKU
+    sheet["H2"] = TEKIYOU
+    sheet["I2"] = TEKIYOU2
+
+    global TAKASA
+    for row_index in range(50):
+        sheet.row_dimensions[row_index + 1].height = TAKASA
+        if row_index < 1:
+            continue
+        if row_index == 2:
+            for column_index in range(1, 9+1):
+                sheet.cell(row=row_index, column=column_index) \
+                        .alignment = \
+                        Alignment(horizontal="center")
+        if row_index > 2:
+            sheet.append(('', '', '', '', '', '', '', '', ''))
+            # 書式の設定
+            sheet.cell(row=row_index, column=1).number_format = FORMAT_HIZUKE
+            sheet.cell(row=row_index, column=4).number_format = "#,##0"
+            sheet.cell(row=row_index, column=7).number_format = "#,##0"
+            # ドロップダウンリストの設定
+            dv_kamoku.add(sheet.cell(row_index, 2))
+            dv_hojo.add(sheet.cell(row_index, 3))
+            dv_kamoku.add(sheet.cell(row_index, 5))
+            dv_hojo.add(sheet.cell(row_index, 6))
+        if (row_index == 2) or (row_index > 2):
+            for column_index in range(1, 9+1):
+                sheet.cell(row=row_index, column=column_index) \
+                        .border = BORDER_NORMAL
+    global KAMOKU_W, HOJO_W, KINGAKU_W
+    global SUITOU_W, KUBUN_W
+    global HIZUKE_W, TEKIYOU_W
+    # 各列の横幅の設定
+    sheet.column_dimensions['A'].width = HIZUKE_W
+    sheet.column_dimensions['B'].width = KAMOKU_W
+    sheet.column_dimensions['C'].width = HOJO_W
+    sheet.column_dimensions['D'].width = KINGAKU_W
+    sheet.column_dimensions['E'].width = KAMOKU_W
+    sheet.column_dimensions['F'].width = HOJO_W
+    sheet.column_dimensions['G'].width = KINGAKU_W
+    sheet.column_dimensions['H'].width = TEKIYOU1_W
+    sheet.column_dimensions['I'].width = TEKIYOU2_W
+    # 印刷設定
+    sheet.page_setup.orientation \
+            = sheet.ORIENTATION_PORTRAIT
+    sheet.page_setup.fitToWidth = 1
+    sheet.page_setup.fitToHeight = 0
+    sheet.sheet_properties.pageSetUpPr.fitToPage = True
+    sheet.page_setup.paperSize = sheet.PAPERSIZE_A4
+
+    sheet.add_data_validation(dv_kamoku)
+    sheet.add_data_validation(dv_hojo)
+
+    return
+
 
 def read_kihon(excel_file_name, sheet_name):
     '''
