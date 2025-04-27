@@ -6,10 +6,10 @@ Created on 2021/02/09
 　　　　　　　　　　　中納言朝忠
 @author: sue-t
 '''
-from pymupdf._mupdf import delete_pdf_hint_page
-from SuiToChou_v006 import F_HIZUKE_COLUMN, F_KARIKATA_KAMOKU_COLUMN, F_KARIKATA_HOJO_KAMOKU_COLUMN,\
-    F_KARIKATA_KINGAKU_COLUMN
-from pickle import NONE
+# from pymupdf._mupdf import delete_pdf_hint_page
+# from SuiToChou_v006 import F_HIZUKE_COLUMN, F_KARIKATA_KAMOKU_COLUMN, F_KARIKATA_HOJO_KAMOKU_COLUMN,\
+#     F_KARIKATA_KINGAKU_COLUMN
+# from pickle import NONE
 
 '''
 出納帳のExcelデータを元に、
@@ -20,19 +20,25 @@ from pickle import NONE
 dataframe にデータを放り込む
 現金・預金間で重複するデータは削除する
 伝票番号を自動生成する
+複合仕訳と現金・預金間で重複データを削除する
+複合仕訳の伝票番号はマイナス　（上手な対応方法を考える）
 
 部門、税区分、税額は対応しない
-
-複合仕訳にチャレンジ
-excelシート
-日付　　科目　金額　…
-　　　　…
-合計
-
-
-
-相手は、複合（科目など）
 '''
+
+'''
+TODO
+翌期　複合仕訳のシート作成
+ドロップダウンリストの設定確認
+エラーチェック
+　日付の範囲
+　設定シートの合計額
+収益、費用への対応
+設定シートの科目の順番自由化
+各合計（販管費合計など）に対応できないか？
+ +++XXXX+++を集計項目として活用する？
+'''
+
 
 import pandas as pd
 import openpyxl as xl
