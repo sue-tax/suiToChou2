@@ -28,7 +28,6 @@ dataframe にデータを放り込む
 
 '''
 TODO
-翌期　複合仕訳のシート作成
 ドロップダウンリストの設定確認
 エラーチェック
 　日付の範囲
@@ -276,8 +275,7 @@ def read_tanitsu_shiwake(excel_file_name, sheet_name):
         仕訳データ。
     -------
     '''
-    d.dprint_method_start()
-
+    # d.dprint_method_start()
     openpyxl.reader.excel.warnings.simplefilter('ignore') # warning 対策　入力規則無視
     if not os.path.isfile(excel_file_name):
         e.eprint('ファイルがありません', excel_file_name)
@@ -316,7 +314,6 @@ def read_tanitsu_shiwake(excel_file_name, sheet_name):
             .astype('int')
     pd.to_datetime(df_furikae[HIZUKE], format="%Y-%m-%d")   # 20210823
 
-    d.dprint(df_furikae)
     if len(df_furikae) > 0:
         df_furikae[TEKIYOU] = df_furikae[TEKIYOU] + \
                 ' ' + df_furikae[TEKIYOU2]
@@ -325,8 +322,8 @@ def read_tanitsu_shiwake(excel_file_name, sheet_name):
             KASHIKATA_KAMOKU, KASHIKATA_HOJO_KAMOKU, KASHIKATA_KINGAKU,
             TEKIYOU],
             axis='columns')
-    d.dprint(df_furikae)
-    d.dprint_method_end()
+    # d.dprint(df_furikae)
+    # d.dprint_method_end()
     return df_furikae
 
 
@@ -347,8 +344,7 @@ def read_fukugou_shiwake(excel_file_name, sheet_name):
         仕訳データ。
     -------
     '''
-    d.dprint_method_start()
-
+    # d.dprint_method_start()
     openpyxl.reader.excel.warnings.simplefilter('ignore') # warning 対策　入力規則無視
     if not os.path.isfile(excel_file_name):
         e.eprint('ファイルがありません', excel_file_name)
@@ -376,13 +372,11 @@ def read_fukugou_shiwake(excel_file_name, sheet_name):
                      KASHIKATA_KAMOKU, KASHIKATA_HOJO_KAMOKU, KASHIKATA_KINGAKU,
                      TEKIYOU, TEKIYOU2])
     # print(df_furikae)
-
     denpyou_bangou = -1
     data_list = []
     iter_fukugou = df_fukugou.itertuples()
     line_tuple = next(iter_fukugou)
     while not pd.isna(line_tuple[F_HIZUKE_COLUMN+1]):
-        print(line_tuple)
         hizuke = line_tuple[F_HIZUKE_COLUMN+1]
         karikata_goukei = 0
         kashikata_goukei = 0
@@ -391,7 +385,6 @@ def read_fukugou_shiwake(excel_file_name, sheet_name):
         # data_list = []
         while line_tuple[F_HIZUKE_COLUMN+1] != FUKUGOU_GOUKEI:
             print(line_tuple)
-            # print(line_tuple[F_KARIKATA_KAMOKU_COLUMN])
             if not pd.isna(line_tuple[F_KARIKATA_KAMOKU_COLUMN+1]): 
                 # if karikata_main == None:
                 #     karikata_main = line_tuple[F_KARIKATA_KAMOKU_COLUMN+1]
@@ -426,8 +419,6 @@ def read_fukugou_shiwake(excel_file_name, sheet_name):
                         TEKIYOU2:  line_tuple[F_TEKIYOU2_COLUMN+1]
                         }
                 data_list.append(new_data)
-            # print(karikata_goukei)
-            # print(kashikata_goukei)
             try:
                 line_tuple = next(iter_fukugou)
             except:
@@ -482,8 +473,8 @@ def read_fukugou_shiwake(excel_file_name, sheet_name):
             KASHIKATA_KAMOKU, KASHIKATA_HOJO_KAMOKU, KASHIKATA_KINGAKU,
             TEKIYOU],
             axis='columns')
-    d.dprint(df_furikae)
-    d.dprint_method_end()
+    # d.dprint(df_furikae)
+    # d.dprint_method_end()
     return df_furikae
 
 
@@ -510,13 +501,11 @@ def ketsugou_shiwake(list_df_shiwake, list_suitou_kamoku,
     '''
     # TODO 伝票番号　付け直し？
 
-    d.dprint_method_start()
-    d.dprint(list_df_shiwake)
+    # d.dprint_method_start()
+    # d.dprint(list_df_shiwake)
     df_ketsugou = pd.concat(list_df_shiwake, ignore_index=True)
     df_ketsugou.sort_values([HIZUKE, DENPYOU_BANGOU],
             inplace=True)
-    d.dprint(df_ketsugou)
-    
     # 重複を削除
     index_pair_list = []
     for _, row in df_ketsugou.iterrows():
@@ -558,7 +547,6 @@ def ketsugou_shiwake(list_df_shiwake, list_suitou_kamoku,
     for pair in index_pair_set:
         # TODO 摘要    異なっていれば、合成する？
         index_drop_list.append(pair[1])
-    d.dprint(index_drop_list)
     df_ketsugou.drop(index_drop_list, inplace=True)
     df_ketsugou[DENPYOU_BANGOU] = df_ketsugou.index + 1
 
@@ -570,7 +558,6 @@ def ketsugou_shiwake(list_df_shiwake, list_suitou_kamoku,
                         in list_suitou_kamoku) \
                 and \
                 (row[KASHIKATA_KAMOKU] == SHOKUCHI):
-            print(row)
             # 借方が出納帳科目、貸方が諸口
             # 日付、借方、貸方、金額が同じものをリストアップ
             index_pair = df_ketsugou.index[ \
@@ -590,7 +577,6 @@ def ketsugou_shiwake(list_df_shiwake, list_suitou_kamoku,
                 and \
                 (row[KARIKATA_KAMOKU] == SHOKUCHI):
             # 貸方が出納帳科目、借方が諸口
-            print(row)
             # 日付、借方、貸方、金額が同じものをリストアップ
             index_pair = df_ketsugou.index[ \
                     (df_ketsugou[HIZUKE] == row[HIZUKE]) \
@@ -599,7 +585,6 @@ def ketsugou_shiwake(list_df_shiwake, list_suitou_kamoku,
                     & (df_ketsugou[KARIKATA_KAMOKU] == SHOKUCHI) \
                     & (df_ketsugou[KARIKATA_KINGAKU] == row[KARIKATA_KINGAKU]) \
                     & (df_ketsugou[KASHIKATA_KINGAKU] == row[KASHIKATA_KINGAKU])]
-            print(index_pair)
             if (len(index_pair) > 0):
                 # 一致したものの最初の１つだけを削除
                 index_drop_list = index_pair[0:1]
@@ -608,9 +593,8 @@ def ketsugou_shiwake(list_df_shiwake, list_suitou_kamoku,
     df_ketsugou = pd.concat([df_ketsugou, df_fukugou_shiwake])
     df_ketsugou.sort_values([HIZUKE],
             inplace=True)
-
-    d.dprint(df_ketsugou)
-    d.dprint_method_end()
+    # d.dprint(df_ketsugou)
+    # d.dprint_method_end()
     return df_ketsugou
 
 def sakusei_soukanjou_motochou(shiwake_chou, kamoku, kishu_bi, kimatsu_bi):
@@ -639,7 +623,7 @@ def sakusei_soukanjou_motochou(shiwake_chou, kamoku, kishu_bi, kimatsu_bi):
         貸方金額の合計。
     -------
     '''
-    d.dprint_method_start()
+    # d.dprint_method_start()
     # 借方
     df_karikata = shiwake_chou[ \
             shiwake_chou[KARIKATA_KAMOKU]==kamoku[0]].copy()
@@ -734,7 +718,7 @@ def sakusei_soukanjou_motochou(shiwake_chou, kamoku, kishu_bi, kimatsu_bi):
     df_motochou[[ZANDAKA]] \
             = df_motochou[[ZANDAKA]].astype('int')
 
-    d.dprint_method_end()
+    # d.dprint_method_end()
     return df_motochou, zandaka, karikata_goukei, kashikata_goukei
 
 
@@ -883,13 +867,16 @@ def henkan_taishaku_kubun(taishaku_kubun):
     d.dprint_method_start()
     if (taishaku_kubun == TAISHAKU_KUBUN_KARI) \
             or (taishaku_kubun == TAISHAKU_KUBUN_SHISAN) \
-            or (taishaku_kubun == TAISHAKU_KUBUN_SHISHUTSU):
+            or (taishaku_kubun == TAISHAKU_KUBUN_SHISHUTSU) \
+            or (taishaku_kubun == TAISHAKU_KUBUN_HIYOU):
         d.dprint_method_end()
         return True
     if (taishaku_kubun == TAISHAKU_KUBUN_KASHI) \
             or (taishaku_kubun == TAISHAKU_KUBUN_JUNSHISAN) \
             or (taishaku_kubun == TAISHAKU_KUBUN_FUSAI) \
-            or (taishaku_kubun == TAISHAKU_KUBUN_SHUNYU):
+            or (taishaku_kubun == TAISHAKU_KUBUN_SHUNYU) \
+            or (taishaku_kubun == TAISHAKU_KUBUN_SHIHON) \
+            or (taishaku_kubun == TAISHAKU_KUBUN_SHUEKI):
         d.dprint_method_end()
         return False
     e.eprint("貸借区分が誤っている。",
@@ -1943,15 +1930,32 @@ def read_kihon(excel_file_name, sheet_name):
     dantai_mei = sheet.cell(row=DANTAI_MEI_ROW, column=2).value
     kishu_bi = sheet.cell(row=KISHU_BI_ROW, column=2).value
     if isinstance(kishu_bi, str):
-        kishu_bi = datetime.strptime(kishu_bi, '%Y-%m-%d')
+        try:
+            kishu_bi = datetime.strptime(kishu_bi, '%Y-%m-%d')
+        except:
+            msg = "シート{}の{}行目{}列目の{}は期首日を示す文字列である必要があります。" \
+                    .format(sheet_name, KISHU_BI_ROW, 2, kishu_bi)
+            e.eprint('データが間違っています', msg)
+            exit()
     kimatsu_bi = sheet.cell(row=KIMATSU_BI_ROW, column=2).value
     if isinstance(kimatsu_bi, str):
-        kimatsu_bi = datetime.strptime(kimatsu_bi, '%Y-%m-%d')
-
+        try:
+            kimatsu_bi = datetime.strptime(kimatsu_bi, '%Y-%m-%d')
+        except:
+            msg = "シート{}の{}行目{}列目の{}は期末日を示す文字列である必要があります。" \
+                    .format(sheet_name, KIMATSU_BI_ROW, 2, kimatsu_bi)
+            e.eprint('データが間違っています', msg)
+            exit()
+    if kishu_bi > kimatsu_bi:
+        msg = "期首日{}より期末日{}が前の日付になっています。" \
+                .format(kishu_bi, kimatsu_bi)
+        e.eprint('データが間違っています', msg)
+        exit()
+        
     kamoku_list = []
     hojo_kamoku_list = []
     suitou_list = []
-#     for index in range(KAMOKU_TITLE_ROW + 1, sheet.max_row):
+    hojo_goukei = 0
     for index in range(KAMOKU_TITLE_ROW + 1, sheet.max_row + 1):
         kamoku = sheet.cell(row=index, column=KAMOKU_COLUMN).value
         if (kamoku[0] == '+') or (kamoku[0] == '*'):
@@ -1968,30 +1972,54 @@ def read_kihon(excel_file_name, sheet_name):
         if (hojo_kamoku == None) \
                 or (hojo_kamoku == KAMOKU_HOJO_GOUKEI):
             # 勘定科目の処理
-            kamoku_zandaka = read_cell(excel_file_name, sheet_name,
+            kamoku_zandaka_ = read_cell(excel_file_name, sheet_name,
                     sheet, index, KAMOKU_ZANDAKA_COLUMN)
+            try:
+                kamoku_zandaka = int(kamoku_zandaka_)
+            except:
+                msg = "{}行目{}列目のデータ{}は、整数である必要があります。" \
+                        .format(index, KAMOKU_ZANDAKA_COLUMN,
+                        kamoku_zandaka_)
+                e.eprint('データが間違っています', msg)
+                exit()
             kamoku_list.append( \
                     (kamoku, kamoku_zandaka, taishaku_kubun, taishaku_flag))
             if suitou == SUITOU_ARI:
                 suitou_list.append((kamoku,))
+            if hojo_kamoku == KAMOKU_HOJO_GOUKEI:
+                if kamoku_zandaka != hojo_goukei:
+                    msg = "科目の期首残高{:,d}と補助科目の期首残高の合計{:,d}が異なります。" \
+                            .format(kamoku_zandaka, hojo_goukei)
+                    e.eprint('データが間違っています', msg)
+                    exit()
+            hojo_goukei = 0
         else:
             # 補助科目の処理
-            hojo_kamoku_zandaka = read_cell(excel_file_name, sheet_name,
+            hojo_kamoku_zandaka_ = read_cell(excel_file_name, sheet_name,
                     sheet, index, HOJO_KAMOKU_ZANDAKA_COLUMN)
-#             hojo_kamoku_zandaka = sheet.cell(row=index, \
-#                     column=HOJO_KAMOKU_ZANDAKA_COLUMN).value
+            try:
+                hojo_kamoku_zandaka = int(hojo_kamoku_zandaka_)
+            except:
+                msg = "{}行目{}列目のデータ{}は、整数である必要があります。" \
+                        .format(index, HOJO_KAMOKU_ZANDAKA_COLUMN,
+                        hojo_kamoku_zandaka_)
+                e.eprint('データが間違っています', msg)
+                exit()
             hojo_kamoku_list.append( \
                     (kamoku, hojo_kamoku, \
                     hojo_kamoku_zandaka, taishaku_kubun, taishaku_flag))
             if suitou == SUITOU_ARI:
                 suitou_list.append((kamoku, hojo_kamoku))
-
-    d.dprint(dantai_mei)
-    d.dprint(kishu_bi)
-    d.dprint(kimatsu_bi)
-    d.dprint(kamoku_list)
-    d.dprint(hojo_kamoku_list)
-    d.dprint(suitou_list)
+            hojo_goukei = hojo_goukei + hojo_kamoku_zandaka
+    # d.dprint(dantai_mei)
+    # d.dprint(kishu_bi)
+    # d.dprint(kimatsu_bi)
+    # d.dprint(kamoku_list)
+    # d.dprint(hojo_kamoku_list)
+    # d.dprint(suitou_list)
+    
+    # TODO 資産計などのチェック
+    
     d.dprint_method_end()
     return dantai_mei, kishu_bi, kimatsu_bi, \
             kamoku_list, hojo_kamoku_list, suitou_list
