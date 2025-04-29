@@ -151,6 +151,9 @@ SHOKUCHI = '諸口'         # 複合仕訳の相手科目名
 FUKUGOU_GOUKEI = '合計'   # 複合仕訳の終わりを示す
 
 
+global kishu_bi, kimatsu_bi
+
+
 def read_suitou(excel_file_name, sheet_name,
             kamoku_mei, hojo_kamoku_mei):
     '''
@@ -213,6 +216,22 @@ def read_suitou(excel_file_name, sheet_name,
             = df_suitou[[TEKIYOU, TEKIYOU2]].astype('str')
     pd.to_datetime(df_suitou[HIZUKE], format="%Y-%m-%d")   # 20210823
 
+    # 日付が期間内かをチェック
+    str_query = '{} < "{}" or "{}" < {}' \
+            .format(HIZUKE, kishu_bi, kimatsu_bi, HIZUKE)
+    d.dprint(str_query)
+    df_out = df_suitou.query(str_query)
+    d.dprint(df_out)
+    if len(df_out) > 0:
+        for _index, row in df_out.iterrows():
+            d.dprint(_index)
+            msg = "シート{}の{}行目の日付{}は範囲外です。" \
+                    .format(sheet_name,
+                    row[DENPYOU_BANGOU]+3 , row[HIZUKE])
+            e.eprint('データが間違っています', msg)
+        exit(-1)
+    # TODO 勘定科目、補助科目　チェック
+    
     d.dprint(df_suitou[AITE_HOJO_KAMOKU]) # "相手補助科目"])   # AITE_HOJO_KAMOKU])
     df_nyukin = df_suitou[df_suitou[NYUKIN] != 0]
     df_nyukin.insert(2, KARIKATA_KAMOKU, kamoku_mei)
@@ -384,7 +403,6 @@ def read_fukugou_shiwake(excel_file_name, sheet_name):
         # kashikata_main = None
         # data_list = []
         while line_tuple[F_HIZUKE_COLUMN+1] != FUKUGOU_GOUKEI:
-            print(line_tuple)
             if not pd.isna(line_tuple[F_KARIKATA_KAMOKU_COLUMN+1]): 
                 # if karikata_main == None:
                 #     karikata_main = line_tuple[F_KARIKATA_KAMOKU_COLUMN+1]

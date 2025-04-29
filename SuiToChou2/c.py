@@ -22,6 +22,6 @@ __version__ = 0.20  # 202504  振替伝票
     1 コンソールへプリント
     2 messagebox.showinfo
 '''
-__dprint_type__ = 0
+__dprint_type__ = 1
 __eprint_type__ = 2
 
