@@ -231,6 +231,9 @@ def read_suitou(excel_file_name, sheet_name,
             e.eprint('データが間違っています', msg)
         exit(-1)
     # TODO 勘定科目、補助科目　チェック
+    # 補助科目があれば、勘定科目・補助科目セットでチェック
+    # 補助科目がなければ、勘定科目だけでチェック
+    # read_kihon で作ったkamoku_list, hojo_kamoku_listを利用する
     
     d.dprint(df_suitou[AITE_HOJO_KAMOKU]) # "相手補助科目"])   # AITE_HOJO_KAMOKU])
     df_nyukin = df_suitou[df_suitou[NYUKIN] != 0]
