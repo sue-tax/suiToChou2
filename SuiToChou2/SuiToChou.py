@@ -155,7 +155,8 @@ global kishu_bi, kimatsu_bi
 
 
 def read_suitou(excel_file_name, sheet_name,
-            kamoku_mei, hojo_kamoku_mei):
+            kamoku_mei, hojo_kamoku_mei,
+            kamoku_list, hojo_kamoku_list):
     '''
     Excelファイル内の出納帳シートを読込み、
     仕訳データを作成する。
@@ -170,6 +171,10 @@ def read_suitou(excel_file_name, sheet_name,
         出納帳の科目名。
     hojo_kamoku_mei : str
         出納帳の補助科目名。
+    kamoku_list : list of tuple
+        勘定科目に関するデータのリスト。
+    hojo_kamoku_list : list of tuple
+        補助科目に関するデータのリスト。
 
     Returns
     df_shwake : DataFrame
@@ -234,6 +239,25 @@ def read_suitou(excel_file_name, sheet_name,
     # 補助科目があれば、勘定科目・補助科目セットでチェック
     # 補助科目がなければ、勘定科目だけでチェック
     # read_kihon で作ったkamoku_list, hojo_kamoku_listを利用する
+    kamoku_l = [tuple_[0] for tuple_ in kamoku_list]
+    kamoku_l.append(SHOKUCHI)
+    d.dprint(kamoku_l)
+    str_query1 = '{} not in @kamoku_l and {} == ""' \
+            .format(AITE_KAMOKU, AITE_HOJO_KAMOKU)
+    d.dprint(str_query1)
+    df_error1 = df_suitou.query(str_query1)
+    d.dprint(df_error1)
+    d.dprint(hojo_kamoku_list)
+    hojo_l = [tuple_[0] + tuple_[1] \
+            for tuple_ in hojo_kamoku_list]
+    # kamoku_l.append(SHOKUCHI)
+    d.dprint(hojo_l)
+    # print(df1['Pref'].str.cat([df1['City'],df1['Town']]))
+    str_query2 = '{}.str.cat({}) not in @hojo_l and {} != ""' \
+            .format(AITE_KAMOKU, AITE_HOJO_KAMOKU, AITE_HOJO_KAMOKU)
+    d.dprint(str_query2)
+    df_error2 = df_suitou.query(str_query2)
+    d.dprint(df_error2)
     
     d.dprint(df_suitou[AITE_HOJO_KAMOKU]) # "相手補助科目"])   # AITE_HOJO_KAMOKU])
     df_nyukin = df_suitou[df_suitou[NYUKIN] != 0]
@@ -2173,12 +2197,14 @@ if __name__ == '__main__':
     for suitou in suitou_list:
         if len(suitou) == 1:
             suitou_chou = read_suitou(INPUT_FILE_NAME,
-                    suitou[0], suitou[0], '')
+                    suitou[0], suitou[0], '',
+                    kamoku_list, hojo_kamoku_list)
             suitou_kamoku_list.append((suitou[0], ''))
         else:
             suitou_chou = read_suitou(INPUT_FILE_NAME,
                     suitou[0] + '_' + suitou[1],
-                    suitou[0], suitou[1])
+                    suitou[0], suitou[1],
+                    kamoku_list, hojo_kamoku_list)
             suitou_kamoku_list.append((suitou[0], suitou[1]))
         suitou_chou_list.append(suitou_chou)
 
