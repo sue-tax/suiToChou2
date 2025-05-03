@@ -230,12 +230,12 @@ def read_suitou(excel_file_name, sheet_name,
     if len(df_out) > 0:
         for _index, row in df_out.iterrows():
             d.dprint(_index)
-            msg = "シート{}の{}行目の日付{}は範囲外です。" \
+            msg = "シート:{}の{}行目の日付{}は範囲外です。" \
                     .format(sheet_name,
                     row[DENPYOU_BANGOU]+3 , row[HIZUKE])
             e.eprint('データが間違っています', msg)
         exit(-1)
-    # TODO 勘定科目、補助科目　チェック
+    # 勘定科目、補助科目　チェック
     # 補助科目があれば、勘定科目・補助科目セットでチェック
     # 補助科目がなければ、勘定科目だけでチェック
     # read_kihon で作ったkamoku_list, hojo_kamoku_listを利用する
@@ -264,11 +264,6 @@ def read_suitou(excel_file_name, sheet_name,
                     row[AITE_KAMOKU], row[AITE_HOJO_KAMOKU])
             e.eprint('データが間違っています', msg)
         exit(-1)
-    # 削除は不要で、エラーメッセージだけだった
-    # list_error = df_error1.index.values.tolist()
-    # list_error.extend(df_error2.index.values.tolist())
-    # df_suitou.drop(list_error, inplace=True)
-    # del df_error1, df_error2
     
     d.dprint(df_suitou[AITE_HOJO_KAMOKU]) # "相手補助科目"])   # AITE_HOJO_KAMOKU])
     df_nyukin = df_suitou[df_suitou[NYUKIN] != 0]
@@ -353,7 +348,6 @@ def read_tanitsu_shiwake(excel_file_name, sheet_name):
                 .format(excel_file_name, sheet_name)
         e.eprint('シートがありません', msg)
         exit()
-
     # 日付、借方金額の列を見て、空行と判断し削除する
     df_furikae.dropna(subset=[HIZUKE, KARIKATA_KINGAKU],
             how='all', inplace=True)
@@ -370,6 +364,65 @@ def read_tanitsu_shiwake(excel_file_name, sheet_name):
             = df_furikae[[KARIKATA_KINGAKU, KASHIKATA_KINGAKU]] \
             .astype('int')
     pd.to_datetime(df_furikae[HIZUKE], format="%Y-%m-%d")   # 20210823
+
+    # 日付が期間内かをチェック
+    str_query = '{} < "{}" or "{}" < {}' \
+            .format(HIZUKE, kishu_bi, kimatsu_bi, HIZUKE)
+    d.dprint(str_query)
+    d.dprint(df_furikae)
+    df_out = df_furikae.query(str_query)
+    if len(df_out) > 0:
+        for _index, row in df_out.iterrows():
+            d.dprint(_index)
+            msg = "シート:{}の{}行目の日付{}は範囲外です。" \
+                    .format(sheet_name,
+                    row[DENPYOU_BANGOU]+3 , row[HIZUKE])
+            e.eprint('データが間違っています', msg)
+        exit(-1)
+    # 勘定科目、補助科目　チェック
+    # 補助科目があれば、勘定科目・補助科目セットでチェック
+    # 補助科目がなければ、勘定科目だけでチェック
+    kamoku_l = [tuple_[0] for tuple_ in kamoku_list]
+    kamoku_l.append(SHOKUCHI)
+    str_query1 = '{} not in @kamoku_l and {} == ""' \
+            .format(KARIKATA_KAMOKU, KARIKATA_HOJO_KAMOKU)
+    df_error1 = df_furikae.query(str_query1)
+    hojo_l = [tuple_[0] + tuple_[1] \
+            for tuple_ in hojo_kamoku_list]
+    str_query2 = '{}.str.cat({}) not in @hojo_l and {} != ""' \
+            .format(KARIKATA_KAMOKU, KARIKATA_HOJO_KAMOKU, KARIKATA_HOJO_KAMOKU)
+    df_error2 = df_furikae.query(str_query2)
+    str_query3 = '{} not in @kamoku_l and {} == ""' \
+            .format(KASHIKATA_KAMOKU, KASHIKATA_HOJO_KAMOKU)
+    df_error3 = df_furikae.query(str_query3)
+    str_query4 = '{}.str.cat({}) not in @hojo_l and {} != ""' \
+            .format(KASHIKATA_KAMOKU, KASHIKATA_HOJO_KAMOKU, KASHIKATA_HOJO_KAMOKU)
+    df_error4 = df_furikae.query(str_query4)
+    if len(df_error1) != 0 or len(df_error2) \
+            or len(df_error3) != 0 or len(df_error4):
+        for _index, row in df_error1.iterrows():
+            msg = "シート:{}の{}行目の借方科目:{}は登録されていません。" \
+                    .format(sheet_name,
+                    row[DENPYOU_BANGOU]+3 , row[KARIKATA_KAMOKU])
+            e.eprint('データが間違っています', msg)
+        for _index, row in df_error2.iterrows():
+            msg = "シート:{}の{}行目の借方科目:{},借方補助科目:{}は登録されていません。" \
+                    .format(sheet_name,
+                    row[DENPYOU_BANGOU]+3 ,
+                    row[KARIKATA_KAMOKU], row[KARIKATA_HOJO_KAMOKU])
+            e.eprint('データが間違っています', msg)
+        for _index, row in df_error3.iterrows():
+            msg = "シート:{}の{}行目の貸方科目:{}は登録されていません。" \
+                    .format(sheet_name,
+                    row[DENPYOU_BANGOU]+3 , row[KASHIKATA_KAMOKU])
+            e.eprint('データが間違っています', msg)
+        for _index, row in df_error4.iterrows():
+            msg = "シート:{}の{}行目の貸方科目:{},貸方補助科目:{}は登録されていません。" \
+                    .format(sheet_name,
+                    row[DENPYOU_BANGOU]+3 ,
+                    row[KASHIKATA_KAMOKU], row[KASHIKATA_HOJO_KAMOKU])
+            e.eprint('データが間違っています', msg)
+        exit(-1)
 
     if len(df_furikae) > 0:
         df_furikae[TEKIYOU] = df_furikae[TEKIYOU] + \
@@ -401,7 +454,7 @@ def read_fukugou_shiwake(excel_file_name, sheet_name):
         仕訳データ。
     -------
     '''
-    # d.dprint_method_start()
+    d.dprint_method_start()
     openpyxl.reader.excel.warnings.simplefilter('ignore') # warning 対策　入力規則無視
     if not os.path.isfile(excel_file_name):
         e.eprint('ファイルがありません', excel_file_name)
@@ -422,6 +475,20 @@ def read_fukugou_shiwake(excel_file_name, sheet_name):
                 .format(excel_file_name, sheet_name)
         e.eprint('シートがありません', msg)
         exit()
+    # 空欄にデータを補充
+    df_fukugou.fillna({ \
+            HIZUKE : '',
+            KARIKATA_KAMOKU: '',
+            KARIKATA_HOJO_KAMOKU: '',
+            TEKIYOU: '',
+            TEKIYOU2: '',
+            KASHIKATA_KAMOKU: '',
+            KASHIKATA_HOJO_KAMOKU: ''},
+            inplace=True)
+    # df_fukugou[[KARIKATA_KINGAKU, KASHIKATA_KINGAKU]] \
+    #         = df_fukugou[[KARIKATA_KINGAKU, KASHIKATA_KINGAKU]] \
+    #         .astype('int')
+    # pd.to_datetime(df_fukugou[HIZUKE], format="%Y-%m-%d")   # 20210823
 
     df_furikae = pd.DataFrame(
             columns=[HIZUKE, DENPYOU_BANGOU,
@@ -429,6 +496,67 @@ def read_fukugou_shiwake(excel_file_name, sheet_name):
                      KASHIKATA_KAMOKU, KASHIKATA_HOJO_KAMOKU, KASHIKATA_KINGAKU,
                      TEKIYOU, TEKIYOU2])
     # print(df_furikae)
+    # 日付が期間内かをチェック
+    # "" , "合計" OK
+    # str_query = '({} < "{}" or "{}" < {}) and ({} != "") and ({} != "{}")' \
+    #         .format(HIZUKE, kishu_bi, kimatsu_bi, HIZUKE,
+    #         HIZUKE, HIZUKE, FUKUGOU_GOUKEI)
+    # d.dprint(str_query)
+    # d.dprint(df_fukugou)
+    # df_out = df_fukugou.query(str_query)
+    # if len(df_out) > 0:
+    #     for _index, row in df_out.iterrows():
+    #         d.dprint(_index)
+    #         msg = "シート:{}の{}行目の日付{}は範囲外です。" \
+    #                 .format(sheet_name,
+    #                 row[DENPYOU_BANGOU]+3 , row[HIZUKE])
+    #         e.eprint('データが間違っています', msg)
+    #     exit(-1)
+    # 勘定科目、補助科目　チェック
+    # 補助科目があれば、勘定科目・補助科目セットでチェック
+    # 補助科目がなければ、勘定科目だけでチェック
+    kamoku_l = [tuple_[0] for tuple_ in kamoku_list]
+    kamoku_l.append(SHOKUCHI)
+    str_query1 = '{} not in @kamoku_l and {} == ""' \
+            .format(KARIKATA_KAMOKU, KARIKATA_HOJO_KAMOKU)
+    df_error1 = df_fukugou.query(str_query1)
+    hojo_l = [tuple_[0] + tuple_[1] \
+            for tuple_ in hojo_kamoku_list]
+    str_query2 = '{}.str.cat({}) not in @hojo_l and {} != ""' \
+            .format(KARIKATA_KAMOKU, KARIKATA_HOJO_KAMOKU, KARIKATA_HOJO_KAMOKU)
+    df_error2 = df_fukugou.query(str_query2)
+    str_query3 = '{} not in @kamoku_l and {} == ""' \
+            .format(KASHIKATA_KAMOKU, KASHIKATA_HOJO_KAMOKU)
+    df_error3 = df_furikae.query(str_query3)
+    str_query4 = '{}.str.cat({}) not in @hojo_l and {} != ""' \
+            .format(KASHIKATA_KAMOKU, KASHIKATA_HOJO_KAMOKU, KASHIKATA_HOJO_KAMOKU)
+    df_error4 = df_fukugou.query(str_query4)
+    if len(df_error1) != 0 or len(df_error2) \
+            or len(df_error3) != 0 or len(df_error4):
+        for _index, row in df_error1.iterrows():
+            msg = "シート:{}の{}行目の借方科目:{}は登録されていません。" \
+                    .format(sheet_name,
+                    row[DENPYOU_BANGOU]+3 , row[KARIKATA_KAMOKU])
+            e.eprint('データが間違っています', msg)
+        for _index, row in df_error2.iterrows():
+            msg = "シート:{}の{}行目の借方科目:{},借方補助科目:{}は登録されていません。" \
+                    .format(sheet_name,
+                    row[DENPYOU_BANGOU]+3 ,
+                    row[KARIKATA_KAMOKU], row[KARIKATA_HOJO_KAMOKU])
+            e.eprint('データが間違っています', msg)
+        for _index, row in df_error3.iterrows():
+            msg = "シート:{}の{}行目の貸方科目:{}は登録されていません。" \
+                    .format(sheet_name,
+                    row[DENPYOU_BANGOU]+3 , row[KASHIKATA_KAMOKU])
+            e.eprint('データが間違っています', msg)
+        for _index, row in df_error4.iterrows():
+            msg = "シート:{}の{}行目の貸方科目:{},貸方補助科目:{}は登録されていません。" \
+                    .format(sheet_name,
+                    row[DENPYOU_BANGOU]+3 ,
+                    row[KASHIKATA_KAMOKU], row[KASHIKATA_HOJO_KAMOKU])
+            e.eprint('データが間違っています', msg)
+        exit(-1)
+
     denpyou_bangou = -1
     data_list = []
     iter_fukugou = df_fukugou.itertuples()
@@ -530,7 +658,7 @@ def read_fukugou_shiwake(excel_file_name, sheet_name):
             TEKIYOU],
             axis='columns')
     # d.dprint(df_furikae)
-    # d.dprint_method_end()
+    d.dprint_method_end()
     return df_furikae
 
 
