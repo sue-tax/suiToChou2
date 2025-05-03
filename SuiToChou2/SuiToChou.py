@@ -249,13 +249,26 @@ def read_suitou(excel_file_name, sheet_name,
     str_query2 = '{}.str.cat({}) not in @hojo_l and {} != ""' \
             .format(AITE_KAMOKU, AITE_HOJO_KAMOKU, AITE_HOJO_KAMOKU)
     df_error2 = df_suitou.query(str_query2)
-    list_error = df_error1.index.values.tolist()
-    list_error.extend(df_error2.index.values.tolist())
-    d.dprint(df_suitou)
-    d.dprint(list_error)
-    df_suitou.drop(list_error, inplace=True)
-    d.dprint(df_suitou)
-    del df_error1, df_error2
+    if len(df_error1) != 0 or len(df_error2):
+        for _index, row in df_error1.iterrows():
+            d.dprint(row)
+            msg = "シート:{}の{}行目の相手科目:{}は登録されていません。" \
+                    .format(sheet_name,
+                    row[DENPYOU_BANGOU]+3 , row[AITE_KAMOKU])
+            e.eprint('データが間違っています', msg)
+        for _index, row in df_error2.iterrows():
+            d.dprint(row)
+            msg = "シート:{}の{}行目の相手科目:{},補助科目:{}は登録されていません。" \
+                    .format(sheet_name,
+                    row[DENPYOU_BANGOU]+3 ,
+                    row[AITE_KAMOKU], row[AITE_HOJO_KAMOKU])
+            e.eprint('データが間違っています', msg)
+        exit(-1)
+    # 削除は不要で、エラーメッセージだけだった
+    # list_error = df_error1.index.values.tolist()
+    # list_error.extend(df_error2.index.values.tolist())
+    # df_suitou.drop(list_error, inplace=True)
+    # del df_error1, df_error2
     
     d.dprint(df_suitou[AITE_HOJO_KAMOKU]) # "相手補助科目"])   # AITE_HOJO_KAMOKU])
     df_nyukin = df_suitou[df_suitou[NYUKIN] != 0]
