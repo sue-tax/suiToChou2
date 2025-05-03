@@ -241,23 +241,21 @@ def read_suitou(excel_file_name, sheet_name,
     # read_kihon で作ったkamoku_list, hojo_kamoku_listを利用する
     kamoku_l = [tuple_[0] for tuple_ in kamoku_list]
     kamoku_l.append(SHOKUCHI)
-    d.dprint(kamoku_l)
     str_query1 = '{} not in @kamoku_l and {} == ""' \
             .format(AITE_KAMOKU, AITE_HOJO_KAMOKU)
-    d.dprint(str_query1)
     df_error1 = df_suitou.query(str_query1)
-    d.dprint(df_error1)
-    d.dprint(hojo_kamoku_list)
     hojo_l = [tuple_[0] + tuple_[1] \
             for tuple_ in hojo_kamoku_list]
-    # kamoku_l.append(SHOKUCHI)
-    d.dprint(hojo_l)
-    # print(df1['Pref'].str.cat([df1['City'],df1['Town']]))
     str_query2 = '{}.str.cat({}) not in @hojo_l and {} != ""' \
             .format(AITE_KAMOKU, AITE_HOJO_KAMOKU, AITE_HOJO_KAMOKU)
-    d.dprint(str_query2)
     df_error2 = df_suitou.query(str_query2)
-    d.dprint(df_error2)
+    list_error = df_error1.index.values.tolist()
+    list_error.extend(df_error2.index.values.tolist())
+    d.dprint(df_suitou)
+    d.dprint(list_error)
+    df_suitou.drop(list_error, inplace=True)
+    d.dprint(df_suitou)
+    del df_error1, df_error2
     
     d.dprint(df_suitou[AITE_HOJO_KAMOKU]) # "相手補助科目"])   # AITE_HOJO_KAMOKU])
     df_nyukin = df_suitou[df_suitou[NYUKIN] != 0]
